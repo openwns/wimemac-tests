@@ -19,15 +19,8 @@ testSuite.addTest(pywns.WNSUnit.ProbesTestSuite(sandboxPath = os.path.join('..',
                                                 
                                                 configFile = 'config.py',
                                                 runSimulations = True,
-                                                shortDescription = 'One-on-one communication with: Copper, Glue, IP, Constanze',
-                                                disabled = False,
-                                                disabledReason = ""))
-
-testSuite.addTest(pywns.WNSUnit.ProbesTestSuite(sandboxPath = os.path.join('..', '..', '..', 'sandbox'),
-                                                
-                                                configFile = 'config80211.py',
-                                                runSimulations = True,
-                                                shortDescription = 'One-on-one communication with: Copper, 802.11, IP, Constanze',
+						requireReferenceOutput = False,
+                                                shortDescription = 'Basic WiMeMAC Test',
                                                 disabled = False,
                                                 disabledReason = ""))
 
