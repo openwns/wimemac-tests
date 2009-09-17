@@ -110,17 +110,24 @@ class MySTAConfig(object):
     frequency = None
     bandwidth = 528
     txPower = None
-    position = None    
-    def __init__(self, initFrequency, position, txPower = dBm(-14)):
+    position = None
+    defPhyMode = None
+    channelModel = None
+    def __init__(self, initFrequency, position, channelModel, txPower = dBm(-14), defPhyMode = 7):
         self.frequency = initFrequency
         self.position = position
         self.txPower = txPower
+        self.defPhyMode = defPhyMode
+        self.channelModel = channelModel
                                           
 # create Stations
 for i in xrange(configuration.numberOfStations):
     staConfig = MySTAConfig(initFrequency = 5016,
                             position = openwns.geometry.position.Position(
-                                            (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0))
+                                            (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
+                            channelModel = 3
+                            defPhyMode = 5)
+                            )
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
