@@ -17,6 +17,7 @@ import ip.evaluation.default
 
 import wimemac.support.Configuration
 import wimemac.evaluation.acknowledgedModeShortCut
+import wimemac.evaluation.probetest
 
 from openwns import dBm, dB
 
@@ -125,9 +126,8 @@ for i in xrange(configuration.numberOfStations):
     staConfig = MySTAConfig(initFrequency = 5016,
                             position = openwns.geometry.position.Position(
                                             (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
-                            channelModel = 3
+                            channelModel = 3,
                             defPhyMode = 5)
-                            )
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
@@ -167,7 +167,7 @@ WNS.simulationModel.nodes.append(vdhcp)
 #wimemac.evaluation.acknowledgedModeShortCut.installEvaluation(WNS, range(1, configuration.numberOfStations + 1))
 
 
-
+wimemac.evaluation.probetest.installEvaluation(WNS, range(1, configuration.numberOfStations +1))
 
 ip.evaluation.default.installEvaluation(sim = WNS,
                                         maxPacketDelay = 0.5,     # s
