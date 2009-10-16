@@ -62,7 +62,7 @@ WNS.outputStrategy = openwns.simulator.OutputStrategy.DELETE
 WNS.maxSimTime = configuration.maxSimTime
 
 
-sizeX, sizeY = 4, 10 # -> two stations distance = sizeX/2
+sizeX, sizeY = 4, 6 # -> two stations distance = sizeX/2
 scenario = rise.Scenario.Scenario(xmin=0,ymin=0,xmax=sizeX, ymax=sizeY)                                              
 
 ######################################
@@ -72,7 +72,7 @@ myPathloss = rise.scenario.Pathloss.PyFunction(
     validDistances = Interval(1, 100), #[m]
     offset = dB(-27.5522),
     freqFactor = 20,
-    distFactor = 20,
+    distFactor = 35,
     distanceUnit = "m", # only for the formula, not for validDistances
     minPathloss = dB(42), # pathloss at 1m distance
     outOfMinRange = rise.scenario.Pathloss.Constant("42 dB"),
@@ -127,7 +127,7 @@ for i in xrange(configuration.numberOfStations):
                             position = openwns.geometry.position.Position(
                                             (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
                             channelModel = 3,
-                            defPhyMode = 5)
+                            defPhyMode = 4)
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
@@ -187,4 +187,9 @@ constanze.evaluation.default.installEvaluation(sim = WNS,
 
 openwns.setSimulator(WNS)
 #openwns.evaluation.default.installEvaluation(sim = WNS)
+
+#Enable Warp2Gui output
+node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
+node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
+
 
