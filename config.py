@@ -62,7 +62,7 @@ WNS.outputStrategy = openwns.simulator.OutputStrategy.DELETE
 WNS.maxSimTime = configuration.maxSimTime
 
 
-sizeX, sizeY = 4, 6 # -> two stations distance = sizeX/2
+sizeX, sizeY = 8, 10 # -> two stations distance = sizeX/2
 scenario = rise.Scenario.Scenario(xmin=0,ymin=0,xmax=sizeX, ymax=sizeY)                                              
 
 ######################################
@@ -72,7 +72,7 @@ myPathloss = rise.scenario.Pathloss.PyFunction(
     validDistances = Interval(1, 100), #[m]
     offset = dB(-27.5522),
     freqFactor = 20,
-    distFactor = 35,
+    distFactor = 20,
     distanceUnit = "m", # only for the formula, not for validDistances
     minPathloss = dB(42), # pathloss at 1m distance
     outOfMinRange = rise.scenario.Pathloss.Constant("42 dB"),
@@ -114,20 +114,29 @@ class MySTAConfig(object):
     position = None
     defPhyMode = None
     channelModel = None
-    def __init__(self, initFrequency, position, channelModel, txPower = dBm(-14), defPhyMode = 7):
+    interferenceAwareness = None
+    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, txPower = dBm(-14), defPhyMode = 7):
         self.frequency = initFrequency
         self.position = position
         self.txPower = txPower
         self.defPhyMode = defPhyMode
         self.channelModel = channelModel
+        self.interferenceAwareness = interferenceAwareness
                                           
 # create Stations
+# if distance <= 4 use different channel model
+if sizeX/2 <= 4:
+    CM = 2
+else:
+    CM = 3
+    
 for i in xrange(configuration.numberOfStations):
     staConfig = MySTAConfig(initFrequency = 5016,
                             position = openwns.geometry.position.Position(
                                             (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
-                            channelModel = 3,
-                            defPhyMode = 4)
+                            channelModel = CM,
+                            interferenceAwareness = True,
+                            defPhyMode = 6)
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
