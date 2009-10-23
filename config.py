@@ -32,7 +32,7 @@ import ofdmaphy.OFDMAPhy
 
 
 #throughputPerStation = configuration.speed * configuration.load / configuration.numberOfStations
-throughputPerStation = 4E6
+throughputPerStation = 130E6
 
 class Configuration:
     maxSimTime = 5.0
@@ -115,13 +115,17 @@ class MySTAConfig(object):
     defPhyMode = None
     channelModel = None
     interferenceAwareness = None
-    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, txPower = dBm(-14), defPhyMode = 7):
+    maxPER = None
+    interferenceThreshold = None
+    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, interferenceThreshold = dBm(-92), maxPER = 0.08, txPower = dBm(-14), defPhyMode = 7):
         self.frequency = initFrequency
         self.position = position
         self.txPower = txPower
         self.defPhyMode = defPhyMode
         self.channelModel = channelModel
         self.interferenceAwareness = interferenceAwareness
+        self.interferenceThreshold = interferenceThreshold
+        self.maxPER = maxPER
                                           
 # create Stations
 # if distance <= 4 use different channel model
@@ -135,8 +139,8 @@ for i in xrange(configuration.numberOfStations):
                             position = openwns.geometry.position.Position(
                                             (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
                             channelModel = CM,
-                            interferenceAwareness = True,
-                            defPhyMode = 6)
+                            interferenceAwareness = False,
+                            defPhyMode = 0)
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
