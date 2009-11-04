@@ -32,7 +32,7 @@ import ofdmaphy.OFDMAPhy
 
 
 #throughputPerStation = configuration.speed * configuration.load / configuration.numberOfStations
-throughputPerStation = 130E6
+throughputPerStation = 120E6
 
 class Configuration:
     maxSimTime = 5.0
@@ -111,16 +111,18 @@ class MySTAConfig(object):
     frequency = None
     bandwidth = 528
     txPower = None
+    postSINRFactor = None
     position = None
     defPhyMode = None
     channelModel = None
     interferenceAwareness = None
     maxPER = None
     interferenceThreshold = None
-    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, interferenceThreshold = dBm(-92), maxPER = 0.08, txPower = dBm(-14), defPhyMode = 7):
+    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, interferenceThreshold = dBm(-92), maxPER = 0.08, txPower = dBm(-14), postSINRFactor = dB(0.0), defPhyMode = 7):
         self.frequency = initFrequency
         self.position = position
         self.txPower = txPower
+        self.postSINRFactor = postSINRFactor
         self.defPhyMode = defPhyMode
         self.channelModel = channelModel
         self.interferenceAwareness = interferenceAwareness
@@ -140,7 +142,8 @@ for i in xrange(configuration.numberOfStations):
                                             (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
                             channelModel = CM,
                             interferenceAwareness = False,
-                            defPhyMode = 0)
+                            postSINRFactor = dB(0.0),
+                            defPhyMode = 3)
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
@@ -182,21 +185,44 @@ WNS.simulationModel.nodes.append(vdhcp)
 
 wimemac.evaluation.probetest.installEvaluation(WNS, range(1, configuration.numberOfStations +1))
 
-ip.evaluation.default.installEvaluation(sim = WNS,
-                                        maxPacketDelay = 0.5,     # s
-                                        maxPacketSize = 2000*8,   # Bit
-                                        maxBitThroughput = 10E6,  # Bit/s
-                                        maxPacketThroughput = 1E6 # Packets/s
-                                        )
+#ip.evaluation.default.installEvaluation(sim = WNS,
+#                                        maxPacketDelay = 0.5,     # s
+#                                        maxPacketSize = 2000*8,   # Bit
+#                                        maxBitThroughput = 10E6,  # Bit/s
+#                                        maxPacketThroughput = 1E6 # Packets/s
+#                                        )
 
-constanze.evaluation.default.installEvaluation(sim = WNS,
-                                               maxPacketDelay = 1.0,
-                                               maxPacketSize = 16000,
-                                               maxBitThroughput = 100e6,
-                                               maxPacketThroughput = 10e6,
-                                               delayResolution = 1000,
-                                               sizeResolution = 2000,
-                                               throughputResolution = 10000)
+#########################
+
+#constanze.evaluation.default.installEvaluation(sim = WNS,
+#                                               maxPacketDelay = 1.0,
+#                                               maxPacketSize = 16000,
+#                                               maxBitThroughput = 100e6,
+#                                               maxPacketThroughput = 10e6,
+#                                               delayResolution = 1000,
+#                                               sizeResolution = 2000,
+#                                               throughputResolution = 10000)
+
+from openwns.evaluation import *
+sourceName = 'traffic.endToEnd.window.incoming.bitThroughput'
+node = openwns.evaluation.createSourceNode(WNS, sourceName)
+node.appendChildren(SettlingTimeGuard(2.0))
+node.getLeafs().appendChildren(Separate(by = 'wns.node.Node.id', forAll = range(1, configuration.numberOfStations +1), format="wns.node.Node.id%d"))
+node.getLeafs().appendChildren(PDF(name = sourceName,
+                        description = 'average bit rate [Bit/s]',
+                        minXValue = 0.0,
+                        maxXValue = 500e6,
+                        resolution = 10000))
+
+
+
+
+
+
+
+
+
+#########################
 
 openwns.setSimulator(WNS)
 #openwns.evaluation.default.installEvaluation(sim = WNS)
