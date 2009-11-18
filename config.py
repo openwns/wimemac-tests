@@ -31,25 +31,20 @@ import rise.scenario.Pathloss
 import ofdmaphy.OFDMAPhy
 
 
-#throughputPerStation = configuration.speed * configuration.load / configuration.numberOfStations
-throughputPerStation = 120E6
 
 class Configuration:
-    maxSimTime = 5.0
+    maxSimTime = 6.0
     # must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 2
+    numberOfStations = 4
     # 100 MBit/s
-    speed = 53.3E6
+    throughputPerStation = 40E6
     # 1500 byte
     fixedPacketSize = 1480 * 8
-    # traffic generator will offer traffic with speed*load
-    load = 7.2E-3 #0.5
-    # fixed Bit Error Rate
-    fixedBER = 1E-5
-    # resendTimeout of StopAndWait-ARQ (be careful with this one!)
-    resendTimeout = 0.01 
+  
     commonLoggerLevel = 1
     dllLoggerLevel = 2
+    # if distance <= 4 use different channel model
+    CM = 2
 
 
 configuration = Configuration()
@@ -62,7 +57,7 @@ WNS.outputStrategy = openwns.simulator.OutputStrategy.DELETE
 WNS.maxSimTime = configuration.maxSimTime
 
 
-sizeX, sizeY = 8, 10 # -> two stations distance = sizeX/2
+sizeX, sizeY = 50, 10 # -> two stations distance = sizeX/2
 scenario = rise.Scenario.Scenario(xmin=0,ymin=0,xmax=sizeX, ymax=sizeY)                                              
 
 ######################################
@@ -116,9 +111,14 @@ class MySTAConfig(object):
     defPhyMode = None
     channelModel = None
     interferenceAwareness = None
+    useRateAdaption = None
     maxPER = None
+    patternPEROffset = None
+    
     interferenceThreshold = None
-    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, interferenceThreshold = dBm(-92), maxPER = 0.08, txPower = dBm(-14), postSINRFactor = dB(0.0), defPhyMode = 7):
+    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, useRateAdaption = True, 
+                                                              interferenceThreshold = dBm(-92), maxPER = 0.08, patternPEROffset = 0.0, 
+                                                              deleteQueues = True, txPower = dBm(-14), postSINRFactor = dB(0.0), defPhyMode = 7):
         self.frequency = initFrequency
         self.position = position
         self.txPower = txPower
@@ -127,23 +127,22 @@ class MySTAConfig(object):
         self.channelModel = channelModel
         self.interferenceAwareness = interferenceAwareness
         self.interferenceThreshold = interferenceThreshold
+        self.useRateAdaption = useRateAdaption
         self.maxPER = maxPER
-                                          
+        self.patternPEROffset = patternPEROffset
+        self.deleteQueues = deleteQueues
+                 
+                         
 # create Stations
-# if distance <= 4 use different channel model
-if sizeX/2 <= 4:
-    CM = 2
-else:
-    CM = 3
-    
-for i in xrange(configuration.numberOfStations):
+for xCoord in ( 1.0, 2.0, 32.0, 33.0):
     staConfig = MySTAConfig(initFrequency = 5016,
                             position = openwns.geometry.position.Position(
-                                            (sizeX / configuration.numberOfStations /2) + (sizeX / configuration.numberOfStations * i), sizeY / 2 ,0),
-                            channelModel = CM,
+                                            xCoord, sizeY / 2 ,0),
+                            channelModel = configuration.CM,
                             interferenceAwareness = False,
-                            postSINRFactor = dB(0.0),
-                            defPhyMode = 3)
+                            useRateAdaption = True,
+                            postSINRFactor = dB(5.0),
+                            defPhyMode = 7)
     station = nc.createSTA(idGen,
                            config = staConfig,
                            loggerLevel = configuration.commonLoggerLevel,
@@ -152,17 +151,22 @@ for i in xrange(configuration.numberOfStations):
     
 
 
-###
+######################
+
 for i in xrange(configuration.numberOfStations):
-    cbr = constanze.Constanze.CBR(0.01, throughputPerStation, configuration.fixedPacketSize)
-    ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[i-1].nl.domainName, WNS.simulationModel.nodes[i].nl.domainName)
-#    #WNS.simulationModel.nodes[i-1].load.addTraffic(ipBinding, cbr)
     ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i-1].nl.domainName)
     listener = constanze.Node.Listener(WNS.simulationModel.nodes[i-1].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i-1].load.addListener(ipListenerBinding, listener)
     
+cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
 WNS.simulationModel.nodes[0].load.addTraffic(ipBinding, cbr)
 
+cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
+
+######################
 
 
 # one Virtual ARP Zone
@@ -214,7 +218,21 @@ node.getLeafs().appendChildren(PDF(name = sourceName,
                         maxXValue = 500e6,
                         resolution = 10000))
 
-
+sourceName = 'traffic.endToEnd.packet.incoming.delay'
+node = openwns.evaluation.createSourceNode(WNS, sourceName)
+node.appendChildren(SettlingTimeGuard(2.0))
+node.getLeafs().appendChildren(Separate(by = 'wns.node.Node.id', forAll = range(1, configuration.numberOfStations +1), format="wns.node.Node.id%d"))
+leafs = node.getLeafs()
+node.getLeafs().appendChildren(PDF(name = sourceName,
+                        description = 'end to end packet delay [s]',
+                        minXValue = 0.0,
+                        maxXValue = 5.0,
+                        resolution = 1000))
+leafs.appendChildren(TimeSeries(format = "fixed", timePrecision = 6, 
+                 valuePrecision = 3, 
+                 name = "TrafficDelay_TimeSeries", 
+                 description = "Delay [s]",
+                 contextKeys = []))
 
 
 
