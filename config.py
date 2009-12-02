@@ -33,7 +33,7 @@ import ofdmaphy.OFDMAPhy
 
 
 class Configuration:
-    maxSimTime = 6.0
+    maxSimTime = 3.0
     # must be < 250 (otherwise IPAddress out of range)
     numberOfStations = 4
     # 100 MBit/s
@@ -89,7 +89,6 @@ propagationConfig = rise.scenario.Propagation.Configuration(
 nc = wimemac.support.NodeCreator.NodeCreator(propagationConfig)
 
 idGen = wimemac.support.idGenerator()
-
 ofdmaPhyConfig = WNS.modules.ofdmaPhy
 
 #from ChannelManagerPool.py for 1 MeshChannel
@@ -114,9 +113,9 @@ class MySTAConfig(object):
     useRateAdaption = None
     maxPER = None
     patternPEROffset = None
-    
     interferenceThreshold = None
-    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, useRateAdaption = True, 
+
+    def __init__(self, initFrequency, position, channelModel, interferenceAwareness = True, useRateAdaption = True, isForwarding = False,
                                                               interferenceThreshold = dBm(-92), maxPER = 0.08, patternPEROffset = 0.0, 
                                                               deleteQueues = True, txPower = dBm(-14), postSINRFactor = dB(0.0), defPhyMode = 7):
         self.frequency = initFrequency
@@ -131,43 +130,50 @@ class MySTAConfig(object):
         self.maxPER = maxPER
         self.patternPEROffset = patternPEROffset
         self.deleteQueues = deleteQueues
+	self.isForwarding = isForwarding
                  
                          
 # create Stations
-for xCoord in ( 1.0, 2.0, 32.0, 33.0):
-    staConfig = MySTAConfig(initFrequency = 5016,
-                            position = openwns.geometry.position.Position(
-                                            xCoord, sizeY / 2 ,0),
-                            channelModel = configuration.CM,
-                            interferenceAwareness = False,
-                            useRateAdaption = True,
-                            postSINRFactor = dB(5.0),
-                            defPhyMode = 7)
-    station = nc.createSTA(idGen,
-                           config = staConfig,
-                           loggerLevel = configuration.commonLoggerLevel,
-                           dllLoggerLevel = configuration.dllLoggerLevel)
-    WNS.simulationModel.nodes.append(station)
-    
+WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 1))
+#len(posList)+1, commonLoggerLevel)) 
 
-
-######################
+# if distance <= 4 use different channel model
+if sizeX/2 <= 4:
+    CM = 2
+else:
+    CM = 3
 
 for i in xrange(configuration.numberOfStations):
-    ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i-1].nl.domainName)
-    listener = constanze.Node.Listener(WNS.simulationModel.nodes[i-1].nl.domainName + ".listener")
-    WNS.simulationModel.nodes[i-1].load.addListener(ipListenerBinding, listener)
+	xCoord = i
+	
+    	staConfig = MySTAConfig(initFrequency = 5016,
+                           position = openwns.geometry.position.Position(
+                                           xCoord, sizeY / 2 ,0),
+                           channelModel = configuration.CM,
+                           interferenceAwareness = True,
+                           useRateAdaption = True,
+			   isForwarding = False,
+                           postSINRFactor = dB(5.0),
+                           defPhyMode = 7)
+    	station = nc.createSTA(idGen,
+                          config = staConfig,
+                          loggerLevel = configuration.commonLoggerLevel,
+                          dllLoggerLevel = configuration.dllLoggerLevel)
+    	WNS.simulationModel.nodes.append(station)
+ #####################
+
+for i in range(1,configuration.numberOfStations+1):
+    ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
+    listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
+    WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
     
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
-WNS.simulationModel.nodes[0].load.addTraffic(ipBinding, cbr)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[4].nl.domainName)
+WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
-cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
-WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
-
-######################
-
+#cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
+#ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+#WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
 
 # one Virtual ARP Zone
 varp = VirtualARPServer("vARP", "theOnlySubnet")
@@ -182,6 +188,8 @@ vdns = VirtualDNSServer("vDNS", "ip.DEFAULT.GLOBAL")
 WNS.simulationModel.nodes.append(vdns)
 
 WNS.simulationModel.nodes.append(vdhcp)
+
+
 
 # modify probes afterwards
 #wimemac.evaluation.acknowledgedModeShortCut.installEvaluation(WNS, range(1, configuration.numberOfStations + 1))
