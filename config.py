@@ -58,6 +58,8 @@ class Configuration:
     interferenceAwareness = False
     ##
     
+    patternAdaption = True
+    
     ## Szenario size
     sizeX = 50
     sizeY = 10  
@@ -144,6 +146,7 @@ for i in range(configuration.numberOfStations):
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
+                        patternAdaption = configuration.patternAdaption,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
                         isForwarding = configuration.isForwarding,
