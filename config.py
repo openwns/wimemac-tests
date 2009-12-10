@@ -52,12 +52,19 @@ class Configuration:
     useRateAdaption = True
     ## Uses Multiple hops to reach target
     isForwarding = False
-
+    
 
     ## Interference Optimization
-    interferenceAwareness = False
+    interferenceAwareness = True
     ##
     
+    ##Relinquish Request
+    patternAdaption = False
+    ##
+    
+    ##Distance between two reservation blocks
+    ReservationGap = 2
+        
     ## Szenario size
     sizeX = 50
     sizeY = 10  
@@ -144,6 +151,7 @@ for i in range(configuration.numberOfStations):
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
+                        patternAdaption = configuration.patternAdaption,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
                         isForwarding = configuration.isForwarding,
@@ -152,6 +160,7 @@ for i in range(configuration.numberOfStations):
 
     station = nc.createSTA(idGen,
                       config = staConfig,
+                      ReservationGap = configuration.ReservationGap,
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
