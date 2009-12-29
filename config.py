@@ -80,7 +80,7 @@ class Configuration:
 configuration = Configuration()
 
 ## scenario setup
-scenario = rise.Scenario.Scenario(xmin=0,ymin=0,xmax= configuration.sizeX, ymax= configuration.sizeY)
+scenario = rise.Scenario.Scenario()
 
 objs = []
 ## e.g. single wall
@@ -117,7 +117,8 @@ myPathloss = rise.scenario.Pathloss.PyFunction(
 myShadowing = rise.scenario.Shadowing.Objects(obstructionList = objs,
                                               xGridBlocks = 1,
                                               yGridBlocks = 1,
-                                              scenario = scenario)
+                                              sizeX = configuration.sizeX,
+                                              sizeY = configuration.sizeY)
 myFastFading = rise.scenario.FastFading.No()
 propagationConfig = rise.scenario.Propagation.Configuration(
     pathloss = myPathloss,
