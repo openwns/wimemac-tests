@@ -32,11 +32,11 @@ import ofdmaphy.OFDMAPhy
 ## Change basic configuration here:
 ###################################
 class Configuration:
-    maxSimTime = 3.0
+    maxSimTime = 2.0
     ## must be < 250 (otherwise IPAddress out of range)
     numberOfStations = 4
     ## Throughput per station
-    throughputPerStation = 40E6
+    throughputPerStation = 100E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
@@ -55,7 +55,8 @@ class Configuration:
 
 
     ## Interference Optimization
-    interferenceAwareness = False
+    interferenceAwareness = True
+    useMultipleStreams = True
     ##
     
     ## Szenario size
@@ -66,6 +67,7 @@ class Configuration:
     settlingTimeGuard = 0.0
     ## Create Timeseries probes
     createTimeseriesProbes = False
+    createSNRProbes = False
   
     commonLoggerLevel = 1
     dllLoggerLevel = 2
@@ -137,8 +139,14 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 ###################################
 ## Configure Stations Positions & Links
 ###################################
+interferencePattern = []
+for i in xrange(20, 106):
+    interferencePattern.append(i)
 
-for i in range(configuration.numberOfStations):
+for i in xrange(180, 221):
+    interferencePattern.append(i)
+
+for i in range(configuration.numberOfStations - 2):
     xCoord = i
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
@@ -146,6 +154,7 @@ for i in range(configuration.numberOfStations):
                         channelModel = configuration.CM,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
+                        useMultipleStreams = configuration.useMultipleStreams,
                         isForwarding = configuration.isForwarding,
                         postSINRFactor = configuration.postSINRFactor,
                         defPhyMode = configuration.defPhyMode)
@@ -156,18 +165,65 @@ for i in range(configuration.numberOfStations):
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
 
+
+### INTERFERER
+staConfig = wimemac.support.NodeCreator.STAConfig(
+                        initFrequency = configuration.initFrequency,
+                        position = openwns.geometry.position.Position(0.5, configuration.sizeY / 2 + 0.5 ,0),
+                        channelModel = configuration.CM,
+                        interferenceAwareness = configuration.interferenceAwareness,
+                        useRateAdaption = configuration.useRateAdaption,
+                        isForwarding = configuration.isForwarding,
+                        postSINRFactor = configuration.postSINRFactor,
+                        defPhyMode = configuration.defPhyMode,
+                        STAisInterferer = True,
+                        interferenceMap = interferencePattern)
+
+station = nc.createSTA(idGen,
+                      config = staConfig,
+                      loggerLevel = configuration.commonLoggerLevel,
+                      dllLoggerLevel = configuration.dllLoggerLevel)
+WNS.simulationModel.nodes.append(station)
+
+### INTERFERER 2
+interferencePattern = []
+for i in xrange(130, 146):
+    interferencePattern.append(i)
+staConfig = wimemac.support.NodeCreator.STAConfig(
+                        initFrequency = configuration.initFrequency,
+                        position = openwns.geometry.position.Position(0.5, configuration.sizeY / 2 + 2,0),
+                        channelModel = configuration.CM,
+                        interferenceAwareness = configuration.interferenceAwareness,
+                        useRateAdaption = configuration.useRateAdaption,
+                        isForwarding = configuration.isForwarding,
+                        postSINRFactor = configuration.postSINRFactor,
+                        defPhyMode = configuration.defPhyMode,
+                        STAisInterferer = True,
+                        interferenceMap = interferencePattern)
+
+station = nc.createSTA(idGen,
+                      config = staConfig,
+                      loggerLevel = configuration.commonLoggerLevel,
+                      dllLoggerLevel = configuration.dllLoggerLevel)
+WNS.simulationModel.nodes.append(station)
+
 for i in range(1,configuration.numberOfStations+1):
     ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
     listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[4].nl.domainName)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
-#cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
-#ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
-#WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
+# Interferer
+cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[3].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+WNS.simulationModel.nodes[3].load.addTraffic(ipBinding, cbr)
+# Interferer
+cbr = constanze.Constanze.CBR(1.2, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[4].nl.domainName, WNS.simulationModel.nodes[4].nl.domainName)
+WNS.simulationModel.nodes[4].load.addTraffic(ipBinding, cbr)
 
 ###################################
 ## End Configure Stations
@@ -210,8 +266,8 @@ wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration
 #                                               throughputResolution = 10000)
 
 ## Enable Warp2Gui output
-#node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
-#node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
+node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
+node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
 
 ###################################
 ## Configure probes
