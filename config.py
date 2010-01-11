@@ -84,8 +84,9 @@ scenario = rise.Scenario.Scenario()
 
 objs = []
 ## e.g. single wall
-#objs.append(rise.scenario.Shadowing.Shape2D(pointA = [sizeX/2, 0.0, 0.0], pointB = [sizeX/2 , sizeY, 0.0], 
-#                                                                                 attenuation = dB(5) ))
+#objs.append(rise.scenario.Shadowing.Shape2D(pointA = openwns.geometry.Position(sizeX/2, 0.0, 0.0),
+#                                            pointB = openwns.geometry.Position(sizeX/2 , sizeY, 0.0), 
+#                                            attenuation = dB(5) ))
 
 ###################################
 ## End basic configuration
@@ -114,11 +115,7 @@ myPathloss = rise.scenario.Pathloss.PyFunction(
     sizeX = configuration.sizeX,
     sizeY = configuration.sizeY)
 #myShadowing = rise.scenario.Shadowing.No()
-myShadowing = rise.scenario.Shadowing.Objects(obstructionList = objs,
-                                              xGridBlocks = 1,
-                                              yGridBlocks = 1,
-                                              sizeX = configuration.sizeX,
-                                              sizeY = configuration.sizeY)
+myShadowing = rise.scenario.Shadowing.Objects(obstructionList = objs)
 myFastFading = rise.scenario.FastFading.No()
 propagationConfig = rise.scenario.Propagation.Configuration(
     pathloss = myPathloss,
@@ -150,7 +147,7 @@ for i in range(configuration.numberOfStations):
     xCoord = i
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
-                        position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
+                        position = openwns.geometry.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
                         patternAdaption = configuration.patternAdaption,
                         interferenceAwareness = configuration.interferenceAwareness,
