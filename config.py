@@ -34,9 +34,9 @@ import ofdmaphy.OFDMAPhy
 class Configuration:
     maxSimTime = 3.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 4
+    numberOfStations = 3
     ## Throughput per station
-    throughputPerStation = 40E6
+    throughputPerStation = 105E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
@@ -56,10 +56,11 @@ class Configuration:
 
     ## Interference Optimization
     interferenceAwareness = True
+    useMultipleStreams = False
     ##
     
     ##Relinquish Request
-    patternAdaption = False
+    patternAdaption = True
     ##
     
     ##Distance between two reservation blocks
@@ -73,6 +74,7 @@ class Configuration:
     settlingTimeGuard = 0.0
     ## Create Timeseries probes
     createTimeseriesProbes = False
+    createSNRProbes = False
   
     commonLoggerLevel = 1
     dllLoggerLevel = 2
@@ -103,7 +105,7 @@ WNS.maxSimTime = configuration.maxSimTime
 ## Radio channel propagation parameters
 myPathloss = rise.scenario.Pathloss.PyFunction(
     validFrequencies = Interval(3100, 10600),
-    validDistances = Interval(1, 100), #[m]
+    validDistances = Interval(0.1, 100), #[m]
     offset = dB(-27.5522),
     freqFactor = 20,
     distFactor = 20,
@@ -144,14 +146,16 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 ###################################
 
 for i in range(configuration.numberOfStations):
-    xCoord = i
+    xCoord = i * 0.1
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
+                        numberOfStations = configuration.numberOfStations,
                         patternAdaption = configuration.patternAdaption,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
+                        useMultipleStreams = configuration.useMultipleStreams,
                         isForwarding = configuration.isForwarding,
                         postSINRFactor = configuration.postSINRFactor,
                         defPhyMode = configuration.defPhyMode)
@@ -169,7 +173,10 @@ for i in range(1,configuration.numberOfStations+1):
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[4].nl.domainName)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
+WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
+cbr = constanze.Constanze.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
 #cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
