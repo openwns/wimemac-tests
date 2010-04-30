@@ -62,7 +62,7 @@ class Configuration:
     ##Relinquish Request
     patternAdaption = True
     ##
-    
+    reservationBlocks = 2
     ##Distance between two reservation blocks
     ReservationGap = 2
         
@@ -86,9 +86,9 @@ scenario = rise.Scenario.Scenario()
 
 objs = []
 ## e.g. single wall
-#objs.append(rise.scenario.Shadowing.Shape2D(pointA = openwns.geometry.Position(sizeX/2, 0.0, 0.0),
-#                                            pointB = openwns.geometry.Position(sizeX/2 , sizeY, 0.0), 
-#                                            attenuation = dB(5) ))
+#objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 1.0, 0.0),
+#                                            openwns.geometry.Position(wallLength , 1.0, 0.0), 
+#                                            attenuation = dB(100) ))
 
 ###################################
 ## End basic configuration
@@ -116,7 +116,6 @@ myPathloss = rise.scenario.Pathloss.PyFunction(
     scenarioWrap = False,
     sizeX = configuration.sizeX,
     sizeY = configuration.sizeY)
-#myShadowing = rise.scenario.Shadowing.No()
 myShadowing = rise.scenario.Shadowing.Objects(obstructionList = objs)
 myFastFading = rise.scenario.FastFading.No()
 propagationConfig = rise.scenario.Propagation.Configuration(
@@ -138,7 +137,7 @@ managers.append(sys)
 
 ofdmaPhyConfig.systems.extend(managers)
 
-#len(posList)+1, commonLoggerLevel)) 
+
 WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 1))
 
 ###################################
@@ -146,13 +145,14 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 ###################################
 
 for i in range(configuration.numberOfStations):
-    xCoord = i * 0.1
+    xCoord = i
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
                         numberOfStations = configuration.numberOfStations,
                         patternAdaption = configuration.patternAdaption,
+                        reservationBlocks = configuration.reservationBlocks,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
                         useMultipleStreams = configuration.useMultipleStreams,
@@ -179,9 +179,6 @@ cbr = constanze.Constanze.CBR(1.01, configuration.throughputPerStation, configur
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
-#cbr = constanze.Constanze.CBR(configuration.maxSimTime/2, configuration.throughputPerStation, configuration.fixedPacketSize)
-#ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
-#WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
 
 ###################################
 ## End Configure Stations
@@ -207,25 +204,6 @@ WNS.simulationModel.nodes.append(vdhcp)
 wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
 wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 
-#ip.evaluation.default.installEvaluation(sim = WNS,
-#                                        maxPacketDelay = 0.5,     # s
-#                                        maxPacketSize = 2000*8,   # Bit
-#                                        maxBitThroughput = 10E6,  # Bit/s
-#                                        maxPacketThroughput = 1E6 # Packets/s
-#                                        )
-
-#constanze.evaluation.default.installEvaluation(sim = WNS,
-#                                               maxPacketDelay = 1.0,
-#                                               maxPacketSize = 16000,
-#                                               maxBitThroughput = 100e6,
-#                                               maxPacketThroughput = 10e6,
-#                                               delayResolution = 1000,
-#                                               sizeResolution = 2000,
-#                                               throughputResolution = 10000)
-
-## Enable Warp2Gui output
-#node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
-#node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
 
 ###################################
 ## Configure probes
