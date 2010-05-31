@@ -17,6 +17,7 @@ import ip.evaluation.default
 import wimemac.support.Configuration
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
+import wimemac.evaluation.finalEvalProbes
 
 from openwns import dBm, dB
 
@@ -36,7 +37,7 @@ class Configuration:
     ## must be < 250 (otherwise IPAddress out of range)
     numberOfStations = 4
     ## Throughput per station
-    throughputPerStation = 100E6
+    throughputPerStation = 50E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
@@ -47,12 +48,15 @@ class Configuration:
     ## Signal frequency
     initFrequency = 3960
     ## Offset for SINR
-    postSINRFactor = dB(5.0)
+    postSINRFactor = dB(0.0)
     ## Is Rate Adaption Used
     useRateAdaption = True
+    useRandomPattern = True
     ## Uses Multiple hops to reach target
     isForwarding = False
 
+    isDroppingAfterRetr = 7
+    PEROffset = 0.04
 
     ## Interference Optimization
     interferenceAwareness = True
@@ -79,7 +83,7 @@ scenario = rise.Scenario.Scenario(xmin=0,ymin=0,xmax= configuration.sizeX, ymax=
 
 objs = []
 ## e.g. single wall
-#objs.append(rise.scenario.Shadowing.Shape2D(pointA = [sizeX/2, 0.0, 0.0], pointB = [sizeX/2 , sizeY, 0.0], 
+#objs.append(rise.scenario.Shadowing.Shape2D(pointA = [configuration.sizeX/2, 0.0, 0.0], pointB = [configuration.sizeX/2 , configuration.sizeY, 0.0], 
 #                                                                                 attenuation = dB(5) ))
 
 ###################################
@@ -97,13 +101,13 @@ WNS.maxSimTime = configuration.maxSimTime
 ## Radio channel propagation parameters
 myPathloss = rise.scenario.Pathloss.PyFunction(
     validFrequencies = Interval(3100, 10600),
-    validDistances = Interval(1, 100), #[m]
+    validDistances = Interval(0.1, 100), #[m]
     offset = dB(-27.5522),
     freqFactor = 20,
     distFactor = 20,
     distanceUnit = "m", # only for the formula, not for validDistances
-    minPathloss = dB(42), # pathloss at 1m distance
-    outOfMinRange = rise.scenario.Pathloss.Constant("42 dB"),
+    minPathloss = dB(22.28), # pathloss at 1m distance
+    outOfMinRange = rise.scenario.Pathloss.Constant("22.28 dB"),
     outOfMaxRange = rise.scenario.Pathloss.Deny(),
     scenarioWrap = False,
     sizeX = configuration.sizeX,
@@ -140,22 +144,27 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 ## Configure Stations Positions & Links
 ###################################
 interferencePattern = []
-for i in xrange(20, 106):
+for i in xrange(8, 30):
     interferencePattern.append(i)
 
-for i in xrange(180, 221):
-    interferencePattern.append(i)
+#for i in xrange(180, 221):
+#    interferencePattern.append(i)
 
-for i in range(configuration.numberOfStations - 2):
-    xCoord = i
+
+#for xCoord in (configuration.sizeX/2 -10, configuration.sizeX/2 -1, configuration.sizeX/2 +1, configuration.sizeX/2 +10 ):
+for xCoord in (5.0, 2.0):
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
+                        numberOfStations = configuration.numberOfStations,
                         interferenceAwareness = configuration.interferenceAwareness,
+                        useRandomPattern = configuration.useRandomPattern,
                         useRateAdaption = configuration.useRateAdaption,
                         useMultipleStreams = configuration.useMultipleStreams,
+                        isDroppingAfterRetr = configuration.isDroppingAfterRetr,
                         isForwarding = configuration.isForwarding,
+                        patternPEROffset = configuration.PEROffset,
                         postSINRFactor = configuration.postSINRFactor,
                         defPhyMode = configuration.defPhyMode)
 
@@ -169,10 +178,12 @@ for i in range(configuration.numberOfStations - 2):
 ### INTERFERER
 staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
-                        position = openwns.geometry.position.Position(0.5, configuration.sizeY / 2 + 0.5 ,0),
+                        position = openwns.geometry.position.Position(7.0, configuration.sizeY / 2 +1, 0),
                         channelModel = configuration.CM,
+                        numberOfStations = configuration.numberOfStations,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
+                        isDroppingAfterRetr = configuration.isDroppingAfterRetr,
                         isForwarding = configuration.isForwarding,
                         postSINRFactor = configuration.postSINRFactor,
                         defPhyMode = configuration.defPhyMode,
@@ -186,13 +197,14 @@ station = nc.createSTA(idGen,
 WNS.simulationModel.nodes.append(station)
 
 ### INTERFERER 2
-interferencePattern = []
-for i in xrange(130, 146):
-    interferencePattern.append(i)
+#interferencePattern = []
+#for i in xrange(130, 146):
+#    interferencePattern.append(i)
 staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
-                        position = openwns.geometry.position.Position(0.5, configuration.sizeY / 2 + 2,0),
+                        position = openwns.geometry.position.Position(7.0, configuration.sizeY / 2 -1, 0),
                         channelModel = configuration.CM,
+                        numberOfStations = configuration.numberOfStations,
                         interferenceAwareness = configuration.interferenceAwareness,
                         useRateAdaption = configuration.useRateAdaption,
                         isForwarding = configuration.isForwarding,
@@ -207,17 +219,22 @@ station = nc.createSTA(idGen,
                       dllLoggerLevel = configuration.dllLoggerLevel)
 WNS.simulationModel.nodes.append(station)
 
-for i in range(1,configuration.numberOfStations+1):
+#for i in range(1,configuration.numberOfStations+1):
+for i in range(1,4+1):
     ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
     listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
-WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
+WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
+
+#cbr = constanze.Constanze.CBR(0.51, configuration.throughputPerStation, configuration.fixedPacketSize)
+#ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[4].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+#WNS.simulationModel.nodes[4].load.addTraffic(ipBinding, cbr)
 
 # Interferer
-cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+cbr = constanze.Constanze.CBR(0.51, configuration.throughputPerStation, configuration.fixedPacketSize)
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[3].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[3].load.addTraffic(ipBinding, cbr)
 # Interferer
@@ -246,7 +263,8 @@ WNS.simulationModel.nodes.append(vdhcp)
 ## Configure probes
 ###################################
 
-wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
+#wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
+wimemac.evaluation.finalEvalProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 
 #ip.evaluation.default.installEvaluation(sim = WNS,
@@ -266,8 +284,8 @@ wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration
 #                                               throughputResolution = 10000)
 
 ## Enable Warp2Gui output
-node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
-node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
+#node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
+#node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
 
 ###################################
 ## Configure probes
