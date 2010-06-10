@@ -36,7 +36,7 @@ import ofdmaphy.OFDMAPhy
 class Configuration:
     maxSimTime = 4.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 4
+    numberOfStations = 3
     ## Throughput per station
     throughputPerStation = 50E6
     ## Packet size for constant bit rate
@@ -50,34 +50,36 @@ class Configuration:
     initFrequency = 3960
     ## Offset for SINR
     postSINRFactor = dB(0.0)
-    ## Is Rate Adaptation Used
-    useRateAdaptation = True
-    useRandomPattern = False
+   
     ## Uses Multiple hops to reach target
     isForwarding = False
 
-    isDroppingAfterRetr = 7
-    PEROffset = 0.04
+    # max allowed PER and additional offset for drp pattern
+    maxPER = 0.03
+    PEROffset = 0.00
+    # drops unacknowledged packets after x retransmissions
+    isDroppingAfterRetr = -1
     
     ## Relinquish Request
     useRelinquishRequest = False
     ## Number of TXOPs to be created
-    reservationBlocks = 2
+    reservationBlocks = 1
     
     ## Szenario size
     sizeX = 50
     sizeY = 10  
   
+    commonLoggerLevel = 1
+    dllLoggerLevel = 2
+
+
     ## TimeSettling for probes
     settlingTimeGuard = 0.0
     ## Create Timeseries probes
     createTimeseriesProbes = False
     createSNRProbes = False
-  
-    commonLoggerLevel = 1
-    dllLoggerLevel = 2
 
-
+    # Used implementation method
     method = '5IA-Blocked-MAS'
 
     #########################
@@ -85,35 +87,35 @@ class Configuration:
     print "Implementation method is : " , method
     if method == '1RateAdaptationOFF':
         ## Is Rate Adaption Used
-        useRateAdaption = False
+        useRateAdaptation = False
         useRandomPattern = True
         ## Interference Optimization
         interferenceAwareness = False
         useMultipleStreams = False
     if method == '2Random-MAS':
         ## Is Rate Adaption Used
-        useRateAdaption = True
+        useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
         interferenceAwareness = False
         useMultipleStreams = False
     if method == '3Blocked-MAS':
         ## Is Rate Adaption Used
-        useRateAdaption = True
+        useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
         interferenceAwareness = False
         useMultipleStreams = False
     if method == '4IA-Random-MAS':
         ## Is Rate Adaption Used
-        useRateAdaption = True
+        useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
         interferenceAwareness = True
         useMultipleStreams = True
     if method == '5IA-Blocked-MAS':
         ## Is Rate Adaption Used
-        useRateAdaption = True
+        useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
         interferenceAwareness = True
@@ -198,11 +200,13 @@ for i in range(configuration.numberOfStations):
                         useRateAdaptation = configuration.useRateAdaptation,
                         useMultipleStreams = configuration.useMultipleStreams,
                         useRelinquishRequest = configuration.useRelinquishRequest,
-                        isDroppingAfterRetr = configuration.isDroppingAfterRetr,
                         isForwarding = configuration.isForwarding,
-                        patternPEROffset = configuration.PEROffset,
                         postSINRFactor = configuration.postSINRFactor,
-                        defPhyMode = configuration.defPhyMode)
+                        reservationBlocks = configuration.reservationBlocks,
+                        defPhyMode = configuration.defPhyMode,
+                        maxPER = configuration.maxPER,
+                        patternPEROffset = configuration.PEROffset,
+                        isDroppingAfterRetr = configuration.isDroppingAfterRetr)
 
     station = nc.createSTA(idGen,
                       config = staConfig,
