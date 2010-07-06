@@ -34,9 +34,9 @@ import ofdmaphy.OFDMAPhy
 ## Change basic configuration here:
 ###################################
 class Configuration:
-    maxSimTime = 4.0
+    maxSimTime = 10.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 3
+    numberOfStations = 2
     ## Throughput per station
     throughputPerStation = 50E6
     ## Packet size for constant bit rate
@@ -74,13 +74,13 @@ class Configuration:
 
 
     ## TimeSettling for probes
-    settlingTimeGuard = 0.0
+    settlingTimeGuard = 3.0
     ## Create Timeseries probes
     createTimeseriesProbes = False
     createSNRProbes = False
 
     # Used implementation method
-    method = '5IA-Blocked-MAS'
+    method = '3Blocked-MAS'
 
     #########################
     ## Implementation methods
@@ -221,9 +221,6 @@ for i in range(1,configuration.numberOfStations+1):
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
-WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
-cbr = constanze.Constanze.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
 
