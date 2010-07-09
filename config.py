@@ -36,7 +36,7 @@ import ofdmaphy.OFDMAPhy
 class Configuration:
     maxSimTime = 2.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 2
+    numberOfStations = 3
     ## Throughput per station
     throughputPerStation = 50E6
     ## Packet size for constant bit rate
