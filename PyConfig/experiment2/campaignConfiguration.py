@@ -52,10 +52,9 @@ class Set(Parameters):
     simTime = Float()
     throughputPerStation = Int()
 
-
+# begin example "wimemac.tutorial.experiment2.campaignConfiguration.initialization"
 params = Set()
 
-# begin example "wimemac.tutorial.experiment2.campaignConfiguration.initialization"
 params.simTime = 10.0
 for i in xrange(1,21):
     params.throughputPerStation = i * 10E6

@@ -53,7 +53,6 @@ class Set(Parameters):
     throughputPerStation = Int()
     reservationBlocks = Int()
 
-
 # begin example "wimemac.tutorial.experiment3.campaignConfiguration.initialization"
 params = Set()
 

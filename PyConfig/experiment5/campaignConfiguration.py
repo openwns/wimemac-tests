@@ -59,3 +59,4 @@ params.simTime = 10.0
 for i in xrange(1,21):
     params.throughputPerStation = i * 10E6
     params.write()
+
