@@ -16,9 +16,11 @@ from ip.VirtualDNS import VirtualDNSServer
 import ip.evaluation.default
 
 import wimemac.support.Configuration
+import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
 import wimemac.evaluation.finalEvalProbes
+import wimemac.evaluation.ip
 
 from openwns import dBm, dB
 
@@ -29,16 +31,17 @@ import rise.scenario.Shadowing
 import rise.scenario.Pathloss
 
 import ofdmaphy.OFDMAPhy
+import math
 
 ###################################
 ## Change basic configuration here:
 ###################################
 class Configuration:
-    maxSimTime = 2.0
+    maxSimTime = 1.0
     ## must be < 250 (otherwise IPAddress out of range)
     numberOfStations = 3
     ## Throughput per station
-    throughputPerStation = 50E6
+    throughputPerStation = 20E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
@@ -64,6 +67,7 @@ class Configuration:
     useRelinquishRequest = False
     ## Number of TXOPs to be created
     reservationBlocks = 1
+    deleteQueues = False
     
     ## Szenario size
     sizeX = 50
@@ -73,16 +77,22 @@ class Configuration:
     dllLoggerLevel = 2
 
 
-    ## TimeSettling for probes
-    settlingTimeGuard = 3.0
-    ## Create Timeseries probes
+    ## Configure Probes
+    settlingTimeGuard = 0.0
+    createThroughputProbe = True
+    createDelayProbe = True
+    createChannelUsageProbe = True
+    createMCSProbe = False
+    createPERProbe = False
+
     createTimeseriesProbes = False
     createSNRProbes = False
+    useDLRE = False
+
 
     # Used implementation method
-
-    method = '3Blocked-MAS'
-    #method = '1RateAdaptationOFF'
+    #method = '3Blocked-MAS'
+    method = '1RateAdaptationOFF'
     
     useDRPchannelAccess = True
     usePCAchannelAccess = True
@@ -93,7 +103,7 @@ class Configuration:
     if method == '1RateAdaptationOFF':
         ## Is Rate Adaption Used
         useRateAdaptation = False
-        useRandomPattern = True
+        useRandomPattern = False
         ## Interference Optimization
         interferenceAwareness = False
         useMultipleStreams = False
@@ -192,6 +202,12 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 #######################################
 ## Configure Stations Positions & Links
 #######################################
+class TrafficEstConfig:
+    MaxCompoundSize = configuration.fixedPacketSize + 20
+    CompoundspSF = math.ceil(configuration.throughputPerStation / (configuration.fixedPacketSize) * 0.065536)
+    BitspSF = CompoundspSF * MaxCompoundSize
+    overWriteEstimation = False
+
 
 for i in range(configuration.numberOfStations):
     xCoord = i*1
@@ -213,7 +229,12 @@ for i in range(configuration.numberOfStations):
                         defPhyMode = configuration.defPhyMode,
                         maxPER = configuration.maxPER,
                         patternPEROffset = configuration.PEROffset,
-                        isDroppingAfterRetr = configuration.isDroppingAfterRetr)
+                        isDroppingAfterRetr = configuration.isDroppingAfterRetr,
+                        deleteQueues = configuration.deleteQueues,
+                        overWriteEstimation = TrafficEstConfig.overWriteEstimation,
+                        CompoundspSF = TrafficEstConfig.CompoundspSF,
+                        BitspSF = TrafficEstConfig.BitspSF,
+                        MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
 
     station = nc.createSTA(idGen,
                       config = staConfig,
@@ -222,18 +243,19 @@ for i in range(configuration.numberOfStations):
     WNS.simulationModel.nodes.append(station)
 
 for i in range(1,configuration.numberOfStations+1):
+    #for i in range(configuration.numberOfStations):
     ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
     listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
-#cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-cbr = constanze.traffic.Poisson(offset = 0.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
+cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+#cbr = constanze.traffic.Poisson(offset = 0.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
 
-#cbr = constanze.Constanze.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-cbr = constanze.traffic.Poisson(offset = 1.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
+cbr = constanze.Constanze.CBR(0.31, configuration.throughputPerStation, configuration.fixedPacketSize)
+#cbr = constanze.traffic.Poisson(offset = 0.31, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
@@ -242,6 +264,7 @@ WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 ###################################
 ## End Configure Stations
 ###################################
+#WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 1))
 
 ## one Virtual ARP Zone
 varp = VirtualARPServer("vARP", "theOnlySubnet")
@@ -260,9 +283,10 @@ WNS.simulationModel.nodes.append(vdhcp)
 ## Configure probes
 ###################################
 
-#wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
-wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
+wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
+#wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 #wimemac.evaluation.finalEvalProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
+#wimemac.evaluation.ip.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 
 ## Enable Warp2Gui output
 node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
