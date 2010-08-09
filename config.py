@@ -208,6 +208,24 @@ class TrafficEstConfig:
     BitspSF = CompoundspSF * MaxCompoundSize
     overWriteEstimation = False
 
+######################################
+##Configure multi frequency devices
+######################################
+class ChannelUnits:
+    Frequency = None
+    BeaconSlot = None
+
+ChannelManagerPerStation= []
+
+for k in range(configuration.numberOfStations):
+    ChannelManagers = []
+    for i in range(1):
+        channelunits = ChannelUnits()
+        channelunits.Frequency = 3100
+        channelunits.BeaconSlot = k+1
+        ChannelManagers.append(channelunits)
+    ChannelManagerPerStation.append(ChannelManagers)
+
 
 for i in range(configuration.numberOfStations):
     xCoord = i*1
@@ -217,6 +235,7 @@ for i in range(configuration.numberOfStations):
                         channelModel = configuration.CM,
                         numberOfStations = configuration.numberOfStations,
                         interferenceAwareness = configuration.interferenceAwareness,
+                        channelManagers = ChannelManagerPerStation[i],
                         useRandomPattern = configuration.useRandomPattern,
                         useRateAdaptation = configuration.useRateAdaptation,
                         useMultipleStreams = configuration.useMultipleStreams,
@@ -235,7 +254,6 @@ for i in range(configuration.numberOfStations):
                         CompoundspSF = TrafficEstConfig.CompoundspSF,
                         BitspSF = TrafficEstConfig.BitspSF,
                         MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
-
     station = nc.createSTA(idGen,
                       config = staConfig,
                       loggerLevel = configuration.commonLoggerLevel,
