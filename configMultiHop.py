@@ -37,11 +37,11 @@ import math
 ## Change basic configuration here:
 ###################################
 class Configuration:
-    maxSimTime = 1.0
+    maxSimTime = 5.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 3
+    numberOfStations = 12
     ## Throughput per station
-    throughputPerStation = 20E6
+    throughputPerStation = 2E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
@@ -91,11 +91,13 @@ class Configuration:
 
 
     # Used implementation method
-    #method = '3Blocked-MAS'
-    method = '1RateAdaptationOFF'
+    method = '3Blocked-MAS'
+    #method = '1RateAdaptationOFF'
     
     useDRPchannelAccess = True
     usePCAchannelAccess = False
+
+    useLinkEstimation = True
 
     #########################
     ## Implementation methods
@@ -105,35 +107,35 @@ class Configuration:
         useRateAdaptation = False
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '2Random-MAS':
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '3Blocked-MAS':
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '4IA-Random-MAS':
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
-        interferenceAwareness = True
+        useInterferenceAwareness = True
         useMultipleStreams = True
     if method == '5IA-Blocked-MAS':
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = True
+        useInterferenceAwareness = True
         useMultipleStreams = True
     else:
         assert method in ('1RateAdaptationOFF','2Random-MAS','3Blocked-MAS','4IA-Random-MAS','5IA-Blocked-MAS')
@@ -145,10 +147,87 @@ scenario = rise.Scenario.Scenario()
 
 objs = []
 ## e.g. single wall
-#objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 1.0, 0.0),
-#                                            openwns.geometry.Position(wallLength , 1.0, 0.0), 
-#                                            attenuation = dB(100) ))
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 0.0, 0.0),
+                                            openwns.geometry.Position(20.0, 0.0, 0.0), 
+                                            attenuation = dB(10) ))
 
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 0.0, 0.0),
+                                            openwns.geometry.Position(0.0, 10.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(20.0, 0.0, 0.0),
+                                            openwns.geometry.Position(20.0, 10.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 10.0, 0.0),
+                                            openwns.geometry.Position(20.0, 10.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(5.0, 0.0, 0.0),
+                                            openwns.geometry.Position(5.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(10.0, 0.0, 0.0),
+                                            openwns.geometry.Position(10.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(15.0, 0.0, 0.0),
+                                            openwns.geometry.Position(15.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(5.0, 10.0, 0.0),
+                                            openwns.geometry.Position(5.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(10.0, 10.0, 0.0),
+                                            openwns.geometry.Position(10.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
+
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(15.0, 10.0, 0.0),
+                                            openwns.geometry.Position(15.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 4.0, 0.0),
+                                            openwns.geometry.Position(2.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(0.0, 6.0, 0.0),
+                                            openwns.geometry.Position(2.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))    
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(3.0, 4.0, 0.0),
+                                            openwns.geometry.Position(7.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))                                            
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(3.0, 6.0, 0.0),
+                                            openwns.geometry.Position(7.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                                                                         
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(8.0, 4.0, 0.0),
+                                            openwns.geometry.Position(12.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(8.0, 6.0, 0.0),
+                                            openwns.geometry.Position(12.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))                                                                                    
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(13.0, 4.0, 0.0),
+                                            openwns.geometry.Position(17.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(13.0, 6.0, 0.0),
+                                            openwns.geometry.Position(17.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(18.0, 4.0, 0.0),
+                                            openwns.geometry.Position(20.0, 4.0, 0.0), 
+                                            attenuation = dB(10) ))
+                                            
+objs.append(rise.scenario.Shadowing.LineSegment(openwns.geometry.Position(18.0, 6.0, 0.0),
+                                            openwns.geometry.Position(20.0, 6.0, 0.0), 
+                                            attenuation = dB(10) ))
 ###################################
 ## End basic configuration
 ###################################
@@ -226,15 +305,19 @@ for k in range(configuration.numberOfStations):
         ChannelManagers.append(channelunits)
     ChannelManagerPerStation.append(ChannelManagers)
 
+xCoord = [2.5, 2.5, 2.5, 7.5, 7.5, 7.5, 12.5, 12.5, 12.5, 17.5, 17.5, 17.5]
+yCoord = [5.0, 8.0, 2.0, 5.0, 8.0, 2.0, 5.0, 8.0, 2.0, 5.0, 8.0, 2.0]
+staIDs = []
+
 
 for i in range(configuration.numberOfStations):
-    xCoord = i*10
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
-                        position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
+                        position = openwns.geometry.position.Position(xCoord[i], yCoord[i] ,0),
                         channelModel = configuration.CM,
                         numberOfStations = configuration.numberOfStations,
-                        interferenceAwareness = configuration.interferenceAwareness,
+                        useInterferenceAwareness = configuration.useInterferenceAwareness,
+                        useLinkEstimation = configuration.useLinkEstimation,
                         channelManagers = ChannelManagerPerStation[i],
                         useRandomPattern = configuration.useRandomPattern,
                         useRateAdaptation = configuration.useRateAdaptation,
@@ -254,11 +337,13 @@ for i in range(configuration.numberOfStations):
                         CompoundspSF = TrafficEstConfig.CompoundspSF,
                         BitspSF = TrafficEstConfig.BitspSF,
                         MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
+    
     station = nc.createSTA(idGen,
                       config = staConfig,
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
+    staIDs.append(station.id)
 
 for i in range(1,configuration.numberOfStations+1):
     #for i in range(configuration.numberOfStations):
@@ -268,7 +353,12 @@ for i in range(1,configuration.numberOfStations+1):
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
 #cbr = constanze.traffic.Poisson(offset = 0.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[11].nl.domainName)
+WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
+
+cbr = constanze.Constanze.CBR(2.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+#cbr = constanze.traffic.Poisson(offset = 0.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
+ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[11].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
 
 

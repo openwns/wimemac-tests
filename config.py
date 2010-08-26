@@ -101,39 +101,44 @@ class Configuration:
     ## Implementation methods
     print "Implementation method is : " , method
     if method == '1RateAdaptationOFF':
+        useLinkEstimation = False
         ## Is Rate Adaption Used
         useRateAdaptation = False
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '2Random-MAS':
+        useLinkEstimation = False
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '3Blocked-MAS':
+        useLinkEstimation = False
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = False
+        useInterferenceAwareness = False
         useMultipleStreams = False
     if method == '4IA-Random-MAS':
+        useLinkEstimation = True
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = True
         ## Interference Optimization
-        interferenceAwareness = True
+        useInterferenceAwareness = True
         useMultipleStreams = True
     if method == '5IA-Blocked-MAS':
+        useLinkEstimation = True
         ## Is Rate Adaption Used
         useRateAdaptation = True
         useRandomPattern = False
         ## Interference Optimization
-        interferenceAwareness = True
+        useInterferenceAwareness = True
         useMultipleStreams = True
     else:
         assert method in ('1RateAdaptationOFF','2Random-MAS','3Blocked-MAS','4IA-Random-MAS','5IA-Blocked-MAS')
@@ -234,7 +239,8 @@ for i in range(configuration.numberOfStations):
                         position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
                         channelModel = configuration.CM,
                         numberOfStations = configuration.numberOfStations,
-                        interferenceAwareness = configuration.interferenceAwareness,
+                        useInterferenceAwareness = configuration.useInterferenceAwareness,
+                        useLinkEstimation = configuration.useLinkEstimation,
                         channelManagers = ChannelManagerPerStation[i],
                         useRandomPattern = configuration.useRandomPattern,
                         useRateAdaptation = configuration.useRateAdaptation,
