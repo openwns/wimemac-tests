@@ -33,8 +33,6 @@ import rise.scenario.Pathloss
 import ofdmaphy.OFDMAPhy
 import math
 
-from openwns.wrowser.simdb.SimConfig import params
-
 ###################################
 ## Change basic configuration here:
 ###################################
