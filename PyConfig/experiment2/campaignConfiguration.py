@@ -46,11 +46,13 @@ if pathToSDK == None:
 
 sys.path.append(os.path.join(pathToSDK, "sandbox", "default", "lib", "python2.4", "site-packages"))
 
-from wrowser.simdb.Parameters import Parameters, Bool, Int, Float, String
+from openwns.wrowser.simdb.Parameters import Parameters, Bool, Int, Float, String
+
 
 class Set(Parameters):
     simTime = Float()
     throughputPerStation = Int()
+
 
 # begin example "wimemac.tutorial.experiment2.campaignConfiguration.initialization"
 params = Set()

@@ -32,7 +32,7 @@ import ofdmaphy.OFDMAPhy
 import random
 import math
 
-from wrowser.simdb.SimConfig import params
+from openwns.wrowser.simdb.SimConfig import params
 
 random.seed(params.Seed)
 ###################################
@@ -66,18 +66,21 @@ class Configuration:
     useRelinquishRequest = False
     ## Number of TXOPs to be created
     reservationBlocks = 1
-
+    deleteQueues = True
+    
     #########################
     ## Implementation methods
     print "Implementation method is : " , params.method
-    #if params.method == '1RateAdaptationOFF':
-    #    ## Is Rate Adaption Used
-    #    useRateAdaptation = False
-    #    useRandomPattern = True
-    #    ## Interference Optimization
-    #    interferenceAwareness = False
-    #    useMultipleStreams = False
+    if params.method == '1RateAdaptationOFF':
+        useLinkEstimation = False
+        ## Is Rate Adaption Used
+        useRateAdaptation = False
+        useRandomPattern = True
+        ## Interference Optimization
+        interferenceAwareness = False
+        useMultipleStreams = False
     if params.method == '2Random-MAS':
+        useLinkEstimation = False
         ## Is Rate Adaptation Used
         useRateAdaptation = True
         useRandomPattern = True
@@ -85,6 +88,7 @@ class Configuration:
         interferenceAwareness = False
         useMultipleStreams = False
     if params.method == '3Blocked-MAS':
+        useLinkEstimation = False
         ## Is Rate Adaptation Used
         useRateAdaptation = True
         useRandomPattern = False
@@ -92,6 +96,7 @@ class Configuration:
         interferenceAwareness = False
         useMultipleStreams = False
     if params.method == '4IA-Random-MAS':
+        useLinkEstimation = True
         ## Is Rate Adaptation Used
         useRateAdaptation = True
         useRandomPattern = True
@@ -99,6 +104,7 @@ class Configuration:
         interferenceAwareness = True
         useMultipleStreams = True
     if params.method == '5IA-Blocked-MAS':
+        useLinkEstimation = True
         ## Is Rate Adaptation Used
         useRateAdaptation = True
         useRandomPattern = False
@@ -117,15 +123,24 @@ class Configuration:
     sizeX = 3*wpansize + 2*wpanseparation
     sizeY = 3*wpansize + 2*wpanseparation
   
-    ## TimeSettling for probes
-    settlingTimeGuard = 10.0     # SettlingTime is only used for Constanze Probes
-    ## Create Timeseries probes
+    ## Configure Probes
+    settlingTimeGuard = 10.0
+    createThroughputProbe = True
+    createDelayProbe = True
+    createChannelUsageProbe = True
+    createMCSProbe = False
+    createPERProbe = False
+
     createTimeseriesProbes = False
     createSNRProbes = False
+    useDLRE = False
   
     commonLoggerLevel = 1
     dllLoggerLevel = 2
 
+    useDRPchannelAccess = True
+    usePCAchannelAccess = False
+    
 configuration = Configuration()
 
 ## scenario setup
@@ -200,7 +215,31 @@ WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 
 ###########################################################################################
 ## Configure Stations Positions & Links
 ###########################################################################################
+class TrafficEstConfig:
+    MaxCompoundSize = configuration.fixedPacketSize + 20
+    CompoundspSF = math.ceil(configuration.throughputPerStation / (configuration.fixedPacketSize) * 0.065536)
+    BitspSF = CompoundspSF * MaxCompoundSize
+    overWriteEstimation = False
 
+######################################
+##Configure multi frequency devices
+######################################
+class ChannelUnits:
+    Frequency = None
+    BeaconSlot = None
+
+ChannelManagerPerStation= []
+
+for k in range(configuration.numberOfStations):
+    ChannelManagers = []
+    for i in range(1):
+        channelunits = ChannelUnits()
+        channelunits.Frequency = 3100
+        channelunits.BeaconSlot = k+1
+        ChannelManagers.append(channelunits)
+    ChannelManagerPerStation.append(ChannelManagers)
+    
+    
 wpanXorigins = [ (configuration.wpansize + configuration.wpanseparation), (0.0), (configuration.wpansize + configuration.wpanseparation)*2, (configuration.wpansize + configuration.wpanseparation), (configuration.wpansize + configuration.wpanseparation)]
 wpanYorigins = [ (configuration.wpansize + configuration.wpanseparation), (configuration.wpansize + configuration.wpanseparation), (configuration.wpansize + configuration.wpanseparation), (configuration.wpansize + configuration.wpanseparation)*2, (0.0)]
 
@@ -227,20 +266,31 @@ for wpan in (0,1,2,3,4):
         
         staConfig = wimemac.support.NodeCreator.STAConfig(
                             initFrequency = configuration.initFrequency,
-                            position = openwns.geometry.position.Position(transmitterXCoord, transmitterYCoord, 0),
+                            position = openwns.geometry.position.Position(transmitterXCoord, transmitterYCoord ,0),
                             channelModel = configuration.CM,
                             numberOfStations = configuration.numberOfStations,
-                            interferenceAwareness = configuration.interferenceAwareness,
+                            useInterferenceAwareness = configuration.useInterferenceAwareness,
+                            useLinkEstimation = configuration.useLinkEstimation,
+                            channelManagers = ChannelManagerPerStation[len(WNS.simulationModel.nodes)-1],
                             useRandomPattern = configuration.useRandomPattern,
                             useRateAdaptation = configuration.useRateAdaptation,
                             useMultipleStreams = configuration.useMultipleStreams,
                             useRelinquishRequest = configuration.useRelinquishRequest,
-                            isDroppingAfterRetr = configuration.isDroppingAfterRetr,
+                            useDRPchannelAccess = configuration.useDRPchannelAccess,
+                            usePCAchannelAccess = configuration.usePCAchannelAccess,
                             isForwarding = configuration.isForwarding,
                             postSINRFactor = configuration.postSINRFactor,
                             reservationBlocks = configuration.reservationBlocks,
                             defPhyMode = configuration.defPhyMode,
-                            maxPER = configuration.maxPER)
+                            maxPER = configuration.maxPER,
+                            patternPEROffset = configuration.PEROffset,
+                            isDroppingAfterRetr = configuration.isDroppingAfterRetr,
+                            deleteQueues = configuration.deleteQueues,
+                            overWriteEstimation = TrafficEstConfig.overWriteEstimation,
+                            CompoundspSF = TrafficEstConfig.CompoundspSF,
+                            BitspSF = TrafficEstConfig.BitspSF,
+                            MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
+
         transmitter = nc.createSTA(idGen,
                                config = staConfig,
                                loggerLevel = configuration.commonLoggerLevel,
@@ -272,20 +322,31 @@ for wpan in (0,1,2,3,4):
                     
         staConfig = wimemac.support.NodeCreator.STAConfig(
                             initFrequency = configuration.initFrequency,
-                            position = openwns.geometry.position.Position(receiverXCoord, receiverYCoord, 0),
+                            position = openwns.geometry.position.Position(receiverXCoord, receiverYCoord ,0),
                             channelModel = configuration.CM,
                             numberOfStations = configuration.numberOfStations,
-                            interferenceAwareness = configuration.interferenceAwareness,
+                            useInterferenceAwareness = configuration.useInterferenceAwareness,
+                            useLinkEstimation = configuration.useLinkEstimation,
+                            channelManagers = ChannelManagerPerStation[len(WNS.simulationModel.nodes)],
                             useRandomPattern = configuration.useRandomPattern,
                             useRateAdaptation = configuration.useRateAdaptation,
                             useMultipleStreams = configuration.useMultipleStreams,
                             useRelinquishRequest = configuration.useRelinquishRequest,
-                            isDroppingAfterRetr = configuration.isDroppingAfterRetr,
+                            useDRPchannelAccess = configuration.useDRPchannelAccess,
+                            usePCAchannelAccess = configuration.usePCAchannelAccess,
                             isForwarding = configuration.isForwarding,
                             postSINRFactor = configuration.postSINRFactor,
                             reservationBlocks = configuration.reservationBlocks,
                             defPhyMode = configuration.defPhyMode,
-                            maxPER = configuration.maxPER)
+                            maxPER = configuration.maxPER,
+                            patternPEROffset = configuration.PEROffset,
+                            isDroppingAfterRetr = configuration.isDroppingAfterRetr,
+                            deleteQueues = configuration.deleteQueues,
+                            overWriteEstimation = TrafficEstConfig.overWriteEstimation,
+                            CompoundspSF = TrafficEstConfig.CompoundspSF,
+                            BitspSF = TrafficEstConfig.BitspSF,
+                            MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
+
         receiver = nc.createSTA(idGen,
                                config = staConfig,
                                loggerLevel = configuration.commonLoggerLevel,
@@ -342,6 +403,10 @@ WNS.simulationModel.nodes.append(vdhcp)
 #wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
 wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 #wimemac.evaluation.finalEvalProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
+
+## Enable Warp2Gui output
+node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
+node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
 
 ###################################
 ## Configure probes

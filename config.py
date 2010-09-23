@@ -33,21 +33,25 @@ import rise.scenario.Pathloss
 import ofdmaphy.OFDMAPhy
 import math
 
+from openwns.wrowser.simdb.SimConfig import params
+
 ###################################
 ## Change basic configuration here:
 ###################################
+
 class Configuration:
-    maxSimTime = 1.0
+    maxSimTime = 10.0
     ## must be < 250 (otherwise IPAddress out of range)
-    numberOfStations = 3
+    numberOfStations = 2
     ## Throughput per station
-    throughputPerStation = 20E6
+    throughputPerStation = 40E6
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
     ## Channel Model
     CM = 2
     ## Default PhyMode
-    defPhyMode = 4
+    defPhyMode = 7
+
     
     ## Signal frequency
     initFrequency = 3960
@@ -67,7 +71,7 @@ class Configuration:
     useRelinquishRequest = False
     ## Number of TXOPs to be created
     reservationBlocks = 1
-    deleteQueues = False
+    deleteQueues = True
     
     ## Szenario size
     sizeX = 50
@@ -78,7 +82,7 @@ class Configuration:
 
 
     ## Configure Probes
-    settlingTimeGuard = 0.0
+    settlingTimeGuard = 3.0
     createThroughputProbe = True
     createDelayProbe = True
     createChannelUsageProbe = True
@@ -89,14 +93,12 @@ class Configuration:
     createSNRProbes = False
     useDLRE = False
 
-
     # Used implementation method
-    #method = '3Blocked-MAS'
-    method = '1RateAdaptationOFF'
-    
-    useDRPchannelAccess = True
-    usePCAchannelAccess = True
+    method = '3Blocked-MAS'
 
+    useDRPchannelAccess = True
+    usePCAchannelAccess = False
+    
     #########################
     ## Implementation methods
     print "Implementation method is : " , method
@@ -230,10 +232,11 @@ for k in range(configuration.numberOfStations):
         channelunits.BeaconSlot = k+1
         ChannelManagers.append(channelunits)
     ChannelManagerPerStation.append(ChannelManagers)
-
-
+    
+# begin example "wimemac.tutorial.experiment4.config.StaSetup"
 for i in range(configuration.numberOfStations):
-    xCoord = i*1
+
+    xCoord = i
     staConfig = wimemac.support.NodeCreator.STAConfig(
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
@@ -241,7 +244,7 @@ for i in range(configuration.numberOfStations):
                         numberOfStations = configuration.numberOfStations,
                         useInterferenceAwareness = configuration.useInterferenceAwareness,
                         useLinkEstimation = configuration.useLinkEstimation,
-                        channelManagers = ChannelManagerPerStation[i],
+                        channelManagers = ChannelManagerPerStation[len(WNS.simulationModel.nodes)-1],
                         useRandomPattern = configuration.useRandomPattern,
                         useRateAdaptation = configuration.useRateAdaptation,
                         useMultipleStreams = configuration.useMultipleStreams,
@@ -260,35 +263,27 @@ for i in range(configuration.numberOfStations):
                         CompoundspSF = TrafficEstConfig.CompoundspSF,
                         BitspSF = TrafficEstConfig.BitspSF,
                         MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
+
     station = nc.createSTA(idGen,
                       config = staConfig,
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
+# end example
 
 for i in range(1,configuration.numberOfStations+1):
-    #for i in range(configuration.numberOfStations):
     ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
     listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
 cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-#cbr = constanze.traffic.Poisson(offset = 0.01, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
 ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
 WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
-
-
-cbr = constanze.Constanze.CBR(0.31, configuration.throughputPerStation, configuration.fixedPacketSize)
-#cbr = constanze.traffic.Poisson(offset = 0.31, throughput = configuration.throughputPerStation, packetSize = configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
-WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
-
 
 
 ###################################
 ## End Configure Stations
 ###################################
-#WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 1))
 
 ## one Virtual ARP Zone
 varp = VirtualARPServer("vARP", "theOnlySubnet")
@@ -307,14 +302,15 @@ WNS.simulationModel.nodes.append(vdhcp)
 ## Configure probes
 ###################################
 
-wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
-#wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
+#wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
+wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 #wimemac.evaluation.finalEvalProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 #wimemac.evaluation.ip.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
 
 ## Enable Warp2Gui output
 node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
 node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
+
 
 ###################################
 ## Configure probes

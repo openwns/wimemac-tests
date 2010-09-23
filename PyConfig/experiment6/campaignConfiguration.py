@@ -26,9 +26,9 @@
 #
 ###############################################################################
 
-from wrowser.simdb.Parameters import AutoSimulationParameters, Parameters, Bool, Int, Float, String
-import wrowser.Configuration as config
-import wrowser.simdb.Database as db
+from openwns.wrowser.simdb.Parameters import AutoSimulationParameters, Parameters, Bool, Int, Float, String
+import openwns.wrowser.Configuration as config
+import openwns.wrowser.simdb.Database as db
 import subprocess
 import scipy
 
@@ -187,6 +187,6 @@ print "%d new / %d waiting / %d finished simulations" %(status['new'],
 if(status['new'] > 0):
     subprocess.call(['./simcontrol.py --create-scenarios'],
                     shell = True)
-    subprocess.call(['./simcontrol.py --queue-scenarios-with-state=NotQueued -t 10'],
+    subprocess.call(['./simcontrol.py --queue-scenarios --restrict-state=NotQueued -t 10'],
                     shell = True)
 

@@ -46,7 +46,7 @@ if pathToSDK == None:
 
 sys.path.append(os.path.join(pathToSDK, "sandbox", "default", "lib", "python2.4", "site-packages"))
 
-from wrowser.simdb.Parameters import Parameters, Bool, Int, Float, String
+from openwns.wrowser.simdb.Parameters import Parameters, Bool, Int, Float, String
 
 # begin example "wimemac.tutorial.experiment4.campaignConfiguration.Set"
 class Set(Parameters):
@@ -54,12 +54,10 @@ class Set(Parameters):
     throughputPerStation = Int()
     wallLength = Float()
 
-
 params = Set()
 
 params.simTime = 5.0
 params.wallLength = 0.0
-
 for i in xrange(1,6):
     params.throughputPerStation = i * 10E6
     params.write()
