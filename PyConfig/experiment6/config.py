@@ -15,9 +15,11 @@ from ip.VirtualDNS import VirtualDNSServer
 import ip.evaluation.default
 
 import wimemac.support.Configuration
+import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
 import wimemac.evaluation.finalEvalProbes
+import wimemac.evaluation.ip
 
 from openwns import dBm, dB
 
@@ -58,6 +60,7 @@ class Configuration:
     postSINRFactor = dB(0.0)
 
     maxPER = 0.03
+    PEROffset = 0.00
     isDroppingAfterRetr = -1
     ## Uses Multiple hops to reach target
     isForwarding = False
@@ -68,63 +71,10 @@ class Configuration:
     reservationBlocks = 1
     deleteQueues = True
     
-    #########################
-    ## Implementation methods
-    print "Implementation method is : " , params.method
-    if params.method == '1RateAdaptationOFF':
-        useLinkEstimation = False
-        ## Is Rate Adaption Used
-        useRateAdaptation = False
-        useRandomPattern = True
-        ## Interference Optimization
-        interferenceAwareness = False
-        useMultipleStreams = False
-    if params.method == '2Random-MAS':
-        useLinkEstimation = False
-        ## Is Rate Adaptation Used
-        useRateAdaptation = True
-        useRandomPattern = True
-        ## Interference Optimization
-        interferenceAwareness = False
-        useMultipleStreams = False
-    if params.method == '3Blocked-MAS':
-        useLinkEstimation = False
-        ## Is Rate Adaptation Used
-        useRateAdaptation = True
-        useRandomPattern = False
-        ## Interference Optimization
-        interferenceAwareness = False
-        useMultipleStreams = False
-    if params.method == '4IA-Random-MAS':
-        useLinkEstimation = True
-        ## Is Rate Adaptation Used
-        useRateAdaptation = True
-        useRandomPattern = True
-        ## Interference Optimization
-        interferenceAwareness = True
-        useMultipleStreams = True
-    if params.method == '5IA-Blocked-MAS':
-        useLinkEstimation = True
-        ## Is Rate Adaptation Used
-        useRateAdaptation = True
-        useRandomPattern = False
-        ## Interference Optimization
-        interferenceAwareness = True
-        useMultipleStreams = True
-    else:
-        assert params.method in ('1RateAdaptationOFF','2Random-MAS','3Blocked-MAS','4IA-Random-MAS','5IA-Blocked-MAS')
-    
-    ## Szenario size
-    wpansize = 5 # Area is A x A
-    wpanseparation = 1
-    
-    maxLinkDistance = params.maxLinkDistance
-    
-    sizeX = 3*wpansize + 2*wpanseparation
-    sizeY = 3*wpansize + 2*wpanseparation
-  
+    commonLoggerLevel = 1
+    dllLoggerLevel = 2
     ## Configure Probes
-    settlingTimeGuard = 10.0
+    settlingTimeGuard = 15.0
     createThroughputProbe = True
     createDelayProbe = True
     createChannelUsageProbe = True
@@ -140,6 +90,62 @@ class Configuration:
 
     useDRPchannelAccess = True
     usePCAchannelAccess = False
+    
+    #########################
+    ## Implementation methods
+    print "Implementation method is : " , params.method
+    if params.method == '1RateAdaptationOFF':
+        useLinkEstimation = False
+        ## Is Rate Adaption Used
+        useRateAdaptation = False
+        useRandomPattern = True
+        ## Interference Optimization
+        useInterferenceAwareness = False
+        useMultipleStreams = False
+    if params.method == '2Random-MAS':
+        useLinkEstimation = False
+        ## Is Rate Adaptation Used
+        useRateAdaptation = True
+        useRandomPattern = True
+        ## Interference Optimization
+        useInterferenceAwareness = False
+        useMultipleStreams = False
+    if params.method == '3Blocked-MAS':
+        useLinkEstimation = False
+        ## Is Rate Adaptation Used
+        useRateAdaptation = True
+        useRandomPattern = False
+        ## Interference Optimization
+        useInterferenceAwareness = False
+        useMultipleStreams = False
+    if params.method == '4IA-Random-MAS':
+        useLinkEstimation = True
+        ## Is Rate Adaptation Used
+        useRateAdaptation = True
+        useRandomPattern = True
+        ## Interference Optimization
+        useInterferenceAwareness = True
+        useMultipleStreams = True
+    if params.method == '5IA-Blocked-MAS':
+        useLinkEstimation = True
+        ## Is Rate Adaptation Used
+        useRateAdaptation = True
+        useRandomPattern = False
+        ## Interference Optimization
+        useInterferenceAwareness = True
+        useMultipleStreams = True
+    else:
+        assert params.method in ('1RateAdaptationOFF','2Random-MAS','3Blocked-MAS','4IA-Random-MAS','5IA-Blocked-MAS')
+    
+    ## Szenario size
+    wpansize = 5 # Area is A x A
+    wpanseparation = 1
+    
+    maxLinkDistance = params.maxLinkDistance
+    
+    sizeX = 3*wpansize + 2*wpanseparation
+    sizeY = 3*wpansize + 2*wpanseparation
+  
     
 configuration = Configuration()
 
@@ -263,7 +269,7 @@ for wpan in (0,1,2,3,4):
         transmitterYCoord = random.uniform(0, configuration.wpansize)
         transmitterYCoord = wpanYorigin + round(transmitterYCoord, 2)
 
-        
+
         staConfig = wimemac.support.NodeCreator.STAConfig(
                             initFrequency = configuration.initFrequency,
                             position = openwns.geometry.position.Position(transmitterXCoord, transmitterYCoord ,0),
@@ -290,6 +296,7 @@ for wpan in (0,1,2,3,4):
                             CompoundspSF = TrafficEstConfig.CompoundspSF,
                             BitspSF = TrafficEstConfig.BitspSF,
                             MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
+
 
         transmitter = nc.createSTA(idGen,
                                config = staConfig,

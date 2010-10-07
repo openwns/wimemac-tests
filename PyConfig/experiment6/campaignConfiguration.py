@@ -51,7 +51,7 @@ class Set(AutoSimulationParameters):
     Seed = Float(parameterRange = [7.0])
    
     # input parameter
-    offeredLoadpLink = Int(default = 16E6)
+    offeredLoadpLink = Int(default = 4E6)
 
 ## Search for receiver with the least incoming throughput
 def getTotalThroughput(paramsString, inputName, cursor):
@@ -70,12 +70,11 @@ def getTotalThroughput(paramsString, inputName, cursor):
            FROM moments VAL, (SELECT scenario_id, " + inputName + " FROM parameter_sets \
                               WHERE " + paramsString + ") AS idResults \
            WHERE VAL.scenario_id = idResults.scenario_id AND \
-           	     VAL.alt_name = 'traffic.endToEnd.window.incoming.bitThroughput_wns.node.Node.id" + str(STA) + "_Moments' \
+           	     VAL.alt_name = 'traffic.endToEnd.window.incoming.bitThroughput_Node.id" + str(STA) + "_Moments' \
            ORDER BY idResults." + inputName + ";"
         cursor.execute(myQuery)
         query = cursor.fetchall()
         resultsALL.append(query)
-
     ## initially fill results with the values of the first station
     results = []    
     for initialResults in (resultsALL[0]):
@@ -108,7 +107,6 @@ params = Set('offeredLoadpLink', cursor, conf.parser.getint("Campaign", "id"), g
                                         exactness = 0.05,
                                         createSimulations=True,
                                         debug=True)
-
 
 numberOfStations = params.numberOfLinkspWPAN*2*5                                    # *2 stations per Link *5 WPANs
 #################################
@@ -187,6 +185,6 @@ print "%d new / %d waiting / %d finished simulations" %(status['new'],
 if(status['new'] > 0):
     subprocess.call(['./simcontrol.py --create-scenarios'],
                     shell = True)
-    subprocess.call(['./simcontrol.py --queue-scenarios --restrict-state=NotQueued -t 10'],
+    subprocess.call(['./simcontrol.py --queue-scenarios -q cqStadt3GB --restrict-state=NotQueued -t 10'],
                     shell = True)
 
