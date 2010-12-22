@@ -4,8 +4,9 @@ import openwns.evaluation
 import openwns.evaluation.default
 from openwns.interval import Interval
 
-import constanze.Constanze
-import constanze.Node
+import constanze
+import constanze.traffic
+import constanze.node
 import constanze.evaluation.default
 import ip.Component
 
@@ -19,7 +20,6 @@ import wimemac.support.Configuration
 import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
-import wimemac.evaluation.finalEvalProbes
 import wimemac.evaluation.ip
 
 from openwns import dBm, dB
@@ -32,6 +32,7 @@ import rise.scenario.Pathloss
 
 import ofdmaphy.OFDMAPhy
 import math
+
 
 from openwns.wrowser.simdb.SimConfig import params
 
@@ -47,19 +48,12 @@ class Configuration:
     throughputPerStation = params.throughputPerStation
     ## Packet size for constant bit rate
     fixedPacketSize = 1480 * 8
-    ## Channel Model
-    CM = 2
     ## Default PhyMode
     defPhyMode = 7
 # end example
     
     ## Signal frequency
     initFrequency = 3960
-    ## Offset for SINR
-    postSINRFactor = dB(0.0)
-   
-    ## Uses Multiple hops to reach target
-    isForwarding = False
 
     # max allowed PER and additional offset for drp pattern
     maxPER = 0.03
@@ -67,8 +61,6 @@ class Configuration:
     # drops unacknowledged packets after x retransmissions
     isDroppingAfterRetr = -1
     
-    ## Relinquish Request
-    useRelinquishRequest = False
     ## Number of TXOPs to be created
     reservationBlocks = 1
     deleteQueues = True
@@ -83,69 +75,43 @@ class Configuration:
 
     ## Configure Probes
     settlingTimeGuard = 3.0
-    createThroughputProbe = True
-    createDelayProbe = True
+
+    createConstanzeProbes = True
     createChannelUsageProbe = True
     createMCSProbe = False
     createPERProbe = False
 
     createTimeseriesProbes = False
     createSNRProbes = False
-    useDLRE = False
-
-    # Used implementation method
-    method = '3Blocked-MAS'
 
     useDRPchannelAccess = True
     usePCAchannelAccess = False
-    
-    #########################
-    ## Implementation methods
-    print "Implementation method is : " , method
-    if method == '1RateAdaptationOFF':
-        useLinkEstimation = False
-        ## Is Rate Adaption Used
-        useRateAdaptation = False
-        useRandomPattern = False
-        ## Interference Optimization
-        useInterferenceAwareness = False
-        useMultipleStreams = False
-    if method == '2Random-MAS':
-        useLinkEstimation = False
-        ## Is Rate Adaption Used
-        useRateAdaptation = True
-        useRandomPattern = True
-        ## Interference Optimization
-        useInterferenceAwareness = False
-        useMultipleStreams = False
-    if method == '3Blocked-MAS':
-        useLinkEstimation = False
-        ## Is Rate Adaption Used
-        useRateAdaptation = True
-        useRandomPattern = False
-        ## Interference Optimization
-        useInterferenceAwareness = False
-        useMultipleStreams = False
-    if method == '4IA-Random-MAS':
-        useLinkEstimation = True
-        ## Is Rate Adaption Used
-        useRateAdaptation = True
-        useRandomPattern = True
-        ## Interference Optimization
-        useInterferenceAwareness = True
-        useMultipleStreams = True
-    if method == '5IA-Blocked-MAS':
-        useLinkEstimation = True
-        ## Is Rate Adaption Used
-        useRateAdaptation = True
-        useRandomPattern = False
-        ## Interference Optimization
-        useInterferenceAwareness = True
-        useMultipleStreams = True
-    else:
-        assert method in ('1RateAdaptationOFF','2Random-MAS','3Blocked-MAS','4IA-Random-MAS','5IA-Blocked-MAS')
+
+    ## Is Rate Adaption Used
+    useRateAdaptation = True
+    ## Use Blocked MAS Reservation
+    useRandomPattern = False
+
+
 
 configuration = Configuration()
+
+class STAConfig(wimemac.support.Transceiver.Station):
+    def __init__(self, initFrequency, position):
+        super(STAConfig, self).__init__(frequency = initFrequency, position = position)
+
+        self.layer2.numberOfStations = configuration.numberOfStations
+        self.layer2.useRandomPattern = configuration.useRandomPattern
+        self.layer2.useRateAdaptation = configuration.useRateAdaptation
+        self.layer2.useDRPchannelAccess = configuration.useDRPchannelAccess
+        self.layer2.usePCAchannelAccess = configuration.usePCAchannelAccess
+        self.layer2.defPhyMode = configuration.defPhyMode
+        self.layer2.maxPER = configuration.maxPER
+        self.layer2.patternPEROffset = configuration.PEROffset
+        self.layer2.isDroppingAfterRetr = configuration.isDroppingAfterRetr
+        self.layer2.deleteQueues = configuration.deleteQueues
+        self.layer2.reservationBlocks = configuration.reservationBlocks
+
 
 ## scenario setup
 scenario = rise.Scenario.Scenario()
@@ -203,80 +169,31 @@ managers.append(sys)
 
 ofdmaPhyConfig.systems.extend(managers)
 
-#len(posList)+1, commonLoggerLevel)) 
-WNS.simulationModel.nodes.append(nc.createVPS(configuration.numberOfStations+1, 1))
-
 #######################################
 ## Configure Stations Positions & Links
 #######################################
-class TrafficEstConfig:
-    MaxCompoundSize = configuration.fixedPacketSize + 20
-    CompoundspSF = math.ceil(configuration.throughputPerStation / (configuration.fixedPacketSize) * 0.065536)
-    BitspSF = CompoundspSF * MaxCompoundSize
-    overWriteEstimation = False
-
-######################################
-##Configure multi frequency devices
-######################################
-class ChannelUnits:
-    Frequency = None
-    BeaconSlot = None
-
-ChannelManagerPerStation= []
-
-for k in range(configuration.numberOfStations):
-    ChannelManagers = []
-    for i in range(1):
-        channelunits = ChannelUnits()
-        channelunits.Frequency = 3100
-        channelunits.BeaconSlot = k+1
-        ChannelManagers.append(channelunits)
-    ChannelManagerPerStation.append(ChannelManagers)
     
 for i in range(configuration.numberOfStations):
 
     xCoord = i
-    staConfig = wimemac.support.NodeCreator.STAConfig(
+    staConfig = STAConfig(
                         initFrequency = configuration.initFrequency,
-                        position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0),
-                        channelModel = configuration.CM,
-                        numberOfStations = configuration.numberOfStations,
-                        useInterferenceAwareness = configuration.useInterferenceAwareness,
-                        useLinkEstimation = configuration.useLinkEstimation,
-                        channelManagers = ChannelManagerPerStation[len(WNS.simulationModel.nodes)-1],
-                        useRandomPattern = configuration.useRandomPattern,
-                        useRateAdaptation = configuration.useRateAdaptation,
-                        useMultipleStreams = configuration.useMultipleStreams,
-                        useRelinquishRequest = configuration.useRelinquishRequest,
-                        useDRPchannelAccess = configuration.useDRPchannelAccess,
-                        usePCAchannelAccess = configuration.usePCAchannelAccess,
-                        isForwarding = configuration.isForwarding,
-                        postSINRFactor = configuration.postSINRFactor,
-                        reservationBlocks = configuration.reservationBlocks,
-                        defPhyMode = configuration.defPhyMode,
-                        maxPER = configuration.maxPER,
-                        patternPEROffset = configuration.PEROffset,
-                        isDroppingAfterRetr = configuration.isDroppingAfterRetr,
-                        deleteQueues = configuration.deleteQueues,
-                        overWriteEstimation = TrafficEstConfig.overWriteEstimation,
-                        CompoundspSF = TrafficEstConfig.CompoundspSF,
-                        BitspSF = TrafficEstConfig.BitspSF,
-                        MaxCompoundSize = TrafficEstConfig.MaxCompoundSize)
-
+                        position = openwns.geometry.position.Position(xCoord, configuration.sizeY / 2 ,0))
+    
     station = nc.createSTA(idGen,
                       config = staConfig,
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
 
-for i in range(1,configuration.numberOfStations+1):
-    ipListenerBinding = constanze.Node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
-    listener = constanze.Node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
+for i in range(configuration.numberOfStations):
+    ipListenerBinding = constanze.node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
+    listener = constanze.node.Listener(WNS.simulationModel.nodes[i].nl.domainName + ".listener")
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
-cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[1].nl.domainName, WNS.simulationModel.nodes[2].nl.domainName)
-WNS.simulationModel.nodes[1].load.addTraffic(ipBinding, cbr)
+cbr = constanze.traffic.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
+WNS.simulationModel.nodes[0].load.addTraffic(ipBinding, cbr)
 
 
 ###################################
@@ -300,20 +217,11 @@ WNS.simulationModel.nodes.append(vdhcp)
 ## Configure probes
 ###################################
 
-#wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration) # Begin with id2 because of the VPS
-wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
-#wimemac.evaluation.finalEvalProbes.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
-#wimemac.evaluation.ip.installEvaluation(WNS, range(2, configuration.numberOfStations +2), configuration)
-
-## Enable Warp2Gui output
-node = openwns.evaluation.createSourceNode(WNS, "wimemac.guiProbe")
-node.appendChildren(openwns.evaluation.generators.TextTrace("wimemac.guiText", ""))
+wimemac.evaluation.wimemacProbes.installEvaluation(WNS, range(1, configuration.numberOfStations +1), configuration)
+if configuration.createConstanzeProbes:
+    wimemac.evaluation.constanzeProbes.installEvaluation(WNS, range(1, configuration.numberOfStations +1), configuration)
 
 
 ###################################
-## Configure probes
-###################################
-
-
 openwns.setSimulator(WNS)
 
