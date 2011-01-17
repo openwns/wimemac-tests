@@ -1,3 +1,29 @@
+###############################################################################
+# This file is part of openWNS (open Wireless Network Simulator)
+# _____________________________________________________________________________
+#
+# Copyright (C) 2004-2011
+# Chair of Communication Networks (ComNets)
+# Kopernikusstr. 5, D-52074 Aachen, Germany
+# phone: ++49-241-80-27910,
+# fax: ++49-241-80-22242
+# email: info@openwns.org
+# www: http://www.openwns.org
+# _____________________________________________________________________________
+#
+# openWNS is free software; you can redistribute it and/or modify it under the
+# terms of the GNU Lesser General Public License version 2 as published by the
+# Free Software Foundation;
+#
+# openWNS is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 import openwns
 import openwns.evaluation
@@ -21,6 +47,8 @@ import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
 import wimemac.evaluation.ip
+
+import wimemac.lowerMAC
 
 from openwns import dBm, dB
 
@@ -101,16 +129,20 @@ class STAConfig(wimemac.support.Transceiver.Station):
         super(STAConfig, self).__init__(frequency = initFrequency, position = position)
 
         self.layer2.numberOfStations = configuration.numberOfStations
-        self.layer2.useRandomPattern = configuration.useRandomPattern
-        self.layer2.useRateAdaptation = configuration.useRateAdaptation
-        self.layer2.useDRPchannelAccess = configuration.useDRPchannelAccess
-        self.layer2.usePCAchannelAccess = configuration.usePCAchannelAccess
+        managerConfig = wimemac.lowerMAC.ManagerConfig()
+        managerConfig.useRandomPattern = configuration.useRandomPattern
+        managerConfig.reservationBlocks = configuration.reservationBlocks
+        managerConfig.useRateAdaptation = configuration.useRateAdaptation
+        managerConfig.useDRPchannelAccess = configuration.useDRPchannelAccess
+        managerConfig.usePCAchannelAccess = configuration.usePCAchannelAccess
+        self.layer2.managerConfig = managerConfig
+        
         self.layer2.defPhyMode = configuration.defPhyMode
         self.layer2.maxPER = configuration.maxPER
         self.layer2.patternPEROffset = configuration.PEROffset
         self.layer2.isDroppingAfterRetr = configuration.isDroppingAfterRetr
         self.layer2.deleteQueues = configuration.deleteQueues
-        self.layer2.reservationBlocks = configuration.reservationBlocks
+
 
 
 ## scenario setup
@@ -185,11 +217,11 @@ for i in [0,2]:
                         initFrequency = configuration.initFrequency,
                         position = openwns.geometry.position.Position(xCoord, yCoord ,0))
     
-    station = nc.createSTA(idGen,
+        station = nc.createSTA(idGen,
                       config = staConfig,
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
-    WNS.simulationModel.nodes.append(station)
+        WNS.simulationModel.nodes.append(station)
 
 for i in range(configuration.numberOfStations):
     ipListenerBinding = constanze.node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)
@@ -197,12 +229,12 @@ for i in range(configuration.numberOfStations):
     WNS.simulationModel.nodes[i].load.addListener(ipListenerBinding, listener)
 
 # begin example "wimemac.tutorial.experiment4.config.StaTraffic"
-cbr = constanze.Constanze.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
+cbr = constanze.traffic.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
 WNS.simulationModel.nodes[0].load.addTraffic(ipBinding, cbr)
 
-cbr = constanze.Constanze.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
-ipBinding = constanze.Node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
+cbr = constanze.traffic.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
+ipBinding = constanze.node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
 # end example
 

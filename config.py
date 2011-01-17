@@ -1,3 +1,29 @@
+###############################################################################
+# This file is part of openWNS (open Wireless Network Simulator)
+# _____________________________________________________________________________
+#
+# Copyright (C) 2004-2011
+# Chair of Communication Networks (ComNets)
+# Kopernikusstr. 5, D-52074 Aachen, Germany
+# phone: ++49-241-80-27910,
+# fax: ++49-241-80-22242
+# email: info@openwns.org
+# www: http://www.openwns.org
+# _____________________________________________________________________________
+#
+# openWNS is free software; you can redistribute it and/or modify it under the
+# terms of the GNU Lesser General Public License version 2 as published by the
+# Free Software Foundation;
+#
+# openWNS is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 import openwns
 import openwns.evaluation
@@ -21,6 +47,8 @@ import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
 import wimemac.evaluation.ip
+
+import wimemac.lowerMAC
 
 from openwns import dBm, dB
 
@@ -74,6 +102,8 @@ class STAConfig(wimemac.support.Transceiver.Station):
         super(STAConfig, self).__init__(frequency = initFrequency, position = position)
 
         self.layer2.numberOfStations = configuration.numberOfStations
+        managerConfig = wimemac.lowerMAC.ManagerConfig()
+        self.layer2.managerConfig = managerConfig
 
 ## scenario setup
 scenario = rise.Scenario.Scenario()
@@ -135,6 +165,7 @@ ofdmaPhyConfig.systems.extend(managers)
 ## Configure Stations Positions & Links
 #######################################
 
+
 for i in range(configuration.numberOfStations):
 
     xCoord = i
@@ -148,7 +179,6 @@ for i in range(configuration.numberOfStations):
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
-# end example
 
 for i in range(configuration.numberOfStations):
     ipListenerBinding = constanze.node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)

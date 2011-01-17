@@ -1,3 +1,29 @@
+###############################################################################
+# This file is part of openWNS (open Wireless Network Simulator)
+# _____________________________________________________________________________
+#
+# Copyright (C) 2004-2011
+# Chair of Communication Networks (ComNets)
+# Kopernikusstr. 5, D-52074 Aachen, Germany
+# phone: ++49-241-80-27910,
+# fax: ++49-241-80-22242
+# email: info@openwns.org
+# www: http://www.openwns.org
+# _____________________________________________________________________________
+#
+# openWNS is free software; you can redistribute it and/or modify it under the
+# terms of the GNU Lesser General Public License version 2 as published by the
+# Free Software Foundation;
+#
+# openWNS is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 import openwns
 import openwns.evaluation
@@ -21,6 +47,8 @@ import wimemac.helper.Probes
 import wimemac.evaluation.wimemacProbes
 import wimemac.evaluation.constanzeProbes
 import wimemac.evaluation.ip
+
+import wimemac.lowerMAC
 
 from openwns import dBm, dB
 
@@ -101,16 +129,20 @@ class STAConfig(wimemac.support.Transceiver.Station):
         super(STAConfig, self).__init__(frequency = initFrequency, position = position)
 
         self.layer2.numberOfStations = configuration.numberOfStations
-        self.layer2.useRandomPattern = configuration.useRandomPattern
-        self.layer2.useRateAdaptation = configuration.useRateAdaptation
-        self.layer2.useDRPchannelAccess = configuration.useDRPchannelAccess
-        self.layer2.usePCAchannelAccess = configuration.usePCAchannelAccess
+        managerConfig = wimemac.lowerMAC.ManagerConfig()
+        managerConfig.useRandomPattern = configuration.useRandomPattern
+        managerConfig.reservationBlocks = configuration.reservationBlocks
+        managerConfig.useRateAdaptation = configuration.useRateAdaptation
+        managerConfig.useDRPchannelAccess = configuration.useDRPchannelAccess
+        managerConfig.usePCAchannelAccess = configuration.usePCAchannelAccess
+        self.layer2.managerConfig = managerConfig
+        
         self.layer2.defPhyMode = configuration.defPhyMode
         self.layer2.maxPER = configuration.maxPER
         self.layer2.patternPEROffset = configuration.PEROffset
         self.layer2.isDroppingAfterRetr = configuration.isDroppingAfterRetr
         self.layer2.deleteQueues = configuration.deleteQueues
-        self.layer2.reservationBlocks = configuration.reservationBlocks
+
 
 
 ## scenario setup
