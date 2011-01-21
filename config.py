@@ -50,8 +50,6 @@ import wimemac.evaluation.ip
 
 import wimemac.lowerMAC
 
-import wimemac.support.ScenarioVisualization
-
 from openwns import dBm, dB
 
 import rise.Scenario
@@ -97,7 +95,7 @@ class Configuration:
 
     createTimeseriesProbes = False
     createSNRProbes = False
-    createScenarioGraph = True
+    createScenarioGraph = False
 
 configuration = Configuration()
 
@@ -186,6 +184,7 @@ for i in range(configuration.numberOfStations):
 
 #here the graphical output of the scenario is created and saved into an output folder
 if configuration.createScenarioGraph == True:
+    import wimemac.support.ScenarioVisualization
     directory = os.getcwd()
     visualizer = wimemac.support.ScenarioVisualization.ScenarioDrawer(WNS.simulationModel.nodes, objs, directory)
     visualizer.drawScenario()
