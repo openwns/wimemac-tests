@@ -73,7 +73,7 @@ from openwns.wrowser.simdb.SimConfig import params
 ###################################
 ## Change basic configuration here:
 ###################################
-# begin example "wimemac.tutorial.experiment2.config.simulationParameter"
+
 class Configuration:
     maxSimTime = params.simTime
     ## must be < 250 (otherwise IPAddress out of range)
@@ -84,7 +84,7 @@ class Configuration:
     fixedPacketSize = 1480 * 8
     ## Default PhyMode
     defPhyMode = 7
-# end example
+
     
     ## Signal frequency
     initFrequency = 3960
@@ -210,7 +210,7 @@ ofdmaPhyConfig.systems.extend(managers)
 #######################################
 ## Configure Stations Positions & Links
 #######################################
-    
+# begin example "wimemac.tutorial.experiment4.config.StaSetup"    
 for i in range(configuration.numberOfStations):
 
     xCoord = i
@@ -223,6 +223,7 @@ for i in range(configuration.numberOfStations):
                       loggerLevel = configuration.commonLoggerLevel,
                       dllLoggerLevel = configuration.dllLoggerLevel)
     WNS.simulationModel.nodes.append(station)
+#end example
 
 for i in range(configuration.numberOfStations):
     ipListenerBinding = constanze.node.IPListenerBinding(WNS.simulationModel.nodes[i].nl.domainName)

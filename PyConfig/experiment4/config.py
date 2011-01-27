@@ -73,7 +73,7 @@ from openwns.wrowser.simdb.SimConfig import params
 ###################################
 ## Change basic configuration here:
 ###################################
-# begin example "wimemac.tutorial.experiment4.config.simulationParameter"
+
 class Configuration:
     maxSimTime = params.simTime
     ## must be < 250 (otherwise IPAddress out of range)
@@ -84,7 +84,7 @@ class Configuration:
     fixedPacketSize = 1480 * 8
     ## Default PhyMode
     defPhyMode = 7
-# end example
+
     
     ## Signal frequency
     initFrequency = 3960
@@ -238,11 +238,11 @@ for i in range(configuration.numberOfStations):
 cbr = constanze.traffic.CBR(0.01, configuration.throughputPerStation, configuration.fixedPacketSize)
 ipBinding = constanze.node.IPBinding(WNS.simulationModel.nodes[0].nl.domainName, WNS.simulationModel.nodes[1].nl.domainName)
 WNS.simulationModel.nodes[0].load.addTraffic(ipBinding, cbr)
+# end example
 
 cbr = constanze.traffic.CBR(1.01, configuration.throughputPerStation, configuration.fixedPacketSize)
 ipBinding = constanze.node.IPBinding(WNS.simulationModel.nodes[2].nl.domainName, WNS.simulationModel.nodes[3].nl.domainName)
 WNS.simulationModel.nodes[2].load.addTraffic(ipBinding, cbr)
-# end example
 
 ###################################
 ## End Configure Stations
